@@ -1,0 +1,848 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1F5FBF">
+<meta name="apple-mobile-web-app-title" content="Engels">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<title>Engels Oefenapp</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap">
+<style>
+/* Layout: één kolom-app met vaste tabbalk onderaan (duimbereik op iPad/telefoon); kaarten in een raster. */
+:root{
+  --bg:#F3F5F8; --surface:#FFFFFF; --surface2:#EAEFF5; --fg:#1F2433; --muted:#5D6678; --line:#D7DEE8;
+  --red:#1F5FBF; --red-soft:#E2ECFB; --gold:#F2A900; --ok:#2A9D6F; --ok-soft:#DDF3EA; --bad:#C8463D; --bad-soft:#FBE4E1;
+  --t1:#E63946; --t2:#E07A1F; --t3:#1F9A8B; --t4:#2F6FA8; --t0:#8892A6;
+  --display:'Fredoka',ui-rounded,'Nunito',system-ui,sans-serif;
+  --body:'Nunito',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --hanzi:'PingFang SC','Hiragino Sans GB','Noto Sans SC','Microsoft YaHei',sans-serif;
+  --shadow:0 1px 2px rgba(31,36,51,.06),0 4px 14px rgba(31,36,51,.06);
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#141821; --surface:#1D2330; --surface2:#262E3D; --fg:#EEF1F6; --muted:#A3ADBF; --line:#323B4D;
+  --red:#6EA8FF; --red-soft:#1E2A40; --gold:#FFC23D; --ok:#4CC995; --ok-soft:#1E3A30; --bad:#FF7A6E; --bad-soft:#3D2522;
+  --t1:#FF6B74; --t2:#FFA552; --t3:#45C9B8; --t4:#6FA8E0; --t0:#8E98AC; --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 14px rgba(0,0,0,.25); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#141821; --surface:#1D2330; --surface2:#262E3D; --fg:#EEF1F6; --muted:#A3ADBF; --line:#323B4D;
+  --red:#6EA8FF; --red-soft:#1E2A40; --gold:#FFC23D; --ok:#4CC995; --ok-soft:#1E3A30; --bad:#FF7A6E; --bad-soft:#3D2522;
+  --t1:#FF6B74; --t2:#FFA552; --t3:#45C9B8; --t4:#6FA8E0; --t0:#8E98AC; --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 14px rgba(0,0,0,.25); color-scheme:dark}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.45;margin:0}
+.wrap{max-width:860px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 120px}
+header.top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.logo{width:46px;height:46px;border-radius:14px;background:var(--red);color:#fff;display:grid;place-items:center;font-family:var(--hanzi);font-size:26px;font-weight:700;flex:none}
+h1{font-family:var(--display);font-weight:700;font-size:1.6rem;margin:0;line-height:1.1}
+.sub{color:var(--muted);font-size:.9rem}
+/* schrijven */
+.charstrip{display:flex;gap:6px;overflow-x:auto;padding:4px 2px 8px;scrollbar-width:thin}
+.charstrip button{font-family:var(--hanzi);font-size:1.5rem;min-width:52px;min-height:52px;padding:4px;position:relative;flex:none}
+.charstrip button[aria-pressed="true"]{background:var(--red);border-color:var(--red);color:#fff}
+.charstrip button .tick{position:absolute;right:3px;top:1px;font-family:var(--body);font-size:.65rem;color:var(--ok)}
+.charstrip button[aria-pressed="true"] .tick{color:#fff}
+.boardwrap{display:grid;grid-template-columns:var(--bs) minmax(0,1fr);gap:18px;align-items:start}
+.boardwrap > div{min-width:0}
+@media (max-width:700px){.boardwrap{grid-template-columns:minmax(0,1fr)}}
+.board{position:relative;width:var(--bs);height:var(--bs);border-radius:16px;overflow:hidden;background:var(--surface);border:2px solid var(--red);touch-action:none;margin:0 auto}
+.board svg,.board canvas{position:absolute;inset:0;width:100%;height:100%}
+.board canvas{touch-action:none;cursor:crosshair}
+.feedback{min-height:28px;font-weight:800;margin-top:8px;text-align:center}
+.feedback.good{color:var(--ok)}.feedback.bad{color:var(--bad)}
+.steps{display:flex;flex-wrap:wrap;gap:4px;margin-top:10px}
+.steps svg{width:44px;height:44px;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+.cinfo .hz{font-size:3.2rem;line-height:1}
+h2{font-family:var(--display);font-weight:600;font-size:1.3rem;margin:22px 0 10px;text-wrap:balance}
+h3{font-family:var(--display);font-weight:600;font-size:1.05rem;margin:0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:var(--shadow)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}
+button,.btn{font:inherit;font-weight:700;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:12px;padding:10px 14px;cursor:pointer;min-height:44px}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+button.primary{background:var(--red);border-color:var(--red);color:#fff}
+button.ghost{background:transparent}
+button.ok{background:var(--ok);border-color:var(--ok);color:#fff}
+button.bad{background:var(--bad);border-color:var(--bad);color:#fff}
+button:disabled{opacity:.45;cursor:default}
+select{font:inherit;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--fg);min-height:44px;max-width:100%}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:var(--surface2);font-size:.8rem;font-weight:700;color:var(--muted)}
+.hz{font-family:var(--hanzi);font-weight:500}
+.py{font-weight:800;letter-spacing:.01em}
+.t1{color:var(--t1)}.t2{color:var(--t2)}.t3{color:var(--t3)}.t4{color:var(--t4)}.t0{color:var(--t0)}
+.muted{color:var(--muted)}
+/* tab bar */
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);
+  padding:6px max(10px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(10px,env(safe-area-inset-left,0px))}
+nav.tabs .in{max-width:860px;margin:0 auto;display:grid;grid-template-columns:repeat(6,1fr);gap:4px}
+nav.tabs button{border:0;background:transparent;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px;font-size:.72rem;color:var(--muted);border-radius:12px}
+nav.tabs button .ic{font-family:var(--hanzi);font-size:1.3rem;line-height:1}
+nav.tabs button[aria-current="page"]{color:var(--red);background:var(--red-soft)}
+/* lesson list */
+.book{margin-bottom:8px}
+.book > summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:14px;background:var(--surface);border:1px solid var(--line);font-family:var(--display);font-weight:600;font-size:1.05rem}
+.book > summary::-webkit-details-marker{display:none}
+.book[open] > summary{border-bottom-left-radius:6px;border-bottom-right-radius:6px}
+.bookno{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;color:#fff;font-size:.95rem;flex:none}
+.lessons{display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));padding:8px 0 4px}
+.lesson{display:flex;gap:10px;align-items:center;text-align:left;padding:10px 12px;border-radius:14px;border:1px solid var(--line);background:var(--surface);width:100%}
+.lesson .dot{width:10px;align-self:stretch;border-radius:6px;flex:none}
+.lesson .info{min-width:0;flex:1}
+.lesson .nm{font-weight:800;font-size:.92rem;line-height:1.2}
+.bar{height:6px;border-radius:6px;background:var(--surface2);overflow:hidden;margin-top:6px}
+.bar > i{display:block;height:100%;background:var(--ok);border-radius:6px}
+/* word list */
+.words{display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
+.word{display:flex;gap:12px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:14px;background:var(--surface);text-align:left;width:100%}
+.word .hz{font-size:1.7rem;line-height:1.1;min-width:2.2em}
+.word .meta{min-width:0}
+.word .nl{font-size:.88rem}
+.word .box{margin-left:auto;font-size:.7rem;font-weight:800;color:var(--muted)}
+.spk{margin-left:auto;font-size:1.1rem;padding:6px 10px;min-height:38px}
+/* flashcard */
+.flash{min-height:330px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:8px;cursor:pointer;user-select:none;position:relative}
+.flash .big{font-size:clamp(3.6rem,14vw,6.5rem);line-height:1.05}
+.flash .nlbig{font-family:var(--display);font-size:2rem;font-weight:600}
+.flash .hint{color:var(--muted);font-size:.85rem}
+.prog{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:10px 0;font-size:.9rem;color:var(--muted)}
+.answer-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+/* quiz */
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.opt{min-height:74px;font-size:1.05rem}
+.opt.hzopt{font-family:var(--hanzi);font-size:2rem;font-weight:500}
+.opt.right{background:var(--ok-soft);border-color:var(--ok);color:var(--fg)}
+.opt.wrong{background:var(--bad-soft);border-color:var(--bad);color:var(--fg)}
+.tonebtns{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px}
+.tonebtns button{display:flex;flex-direction:column;align-items:center;gap:4px;min-height:96px}
+.tonebtns svg{width:56px;height:36px}
+.score{font-family:var(--display);font-size:1.4rem;font-weight:700}
+.notice{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:14px;background:var(--red-soft);border:1px solid var(--red);font-size:.92rem}
+.notice b{display:block}
+.ok-note{background:var(--ok-soft);border-color:var(--ok)}
+/* taal */
+.langsw{margin-left:auto;flex:none}
+.langsw button{min-height:34px;padding:4px 10px;font-weight:800;font-size:.85rem}
+/* route */
+.unit{color:#fff;border-radius:16px;padding:12px 16px;margin:22px 0 10px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;font-family:var(--display)}
+.unit span{font-size:.85rem;opacity:.9}
+.node-row{display:flex;justify-content:center;margin:6px 0}
+.node{position:relative;background:none;border:0;box-shadow:none;padding:0;min-height:0;border-radius:50%}
+.node svg{display:block;filter:drop-shadow(0 3px 0 rgba(0,0,0,.12))}
+.node.sel svg{filter:drop-shadow(0 0 0 transparent) drop-shadow(0 0 6px var(--gold))}
+.node .bubble{position:absolute;top:-30px;left:50%;transform:translateX(-50%);background:var(--surface);border:2px solid var(--line);color:var(--fg);font-weight:800;font-size:.75rem;padding:3px 10px;border-radius:10px;white-space:nowrap;font-family:var(--display)}
+.node.cur{margin-top:28px}
+.wdetail{margin:8px 0 14px}
+.auto{padding:6px 0}
+.bookline{padding:4px 0;font-size:.92rem}
+.auto .bar{margin-top:6px}
+button.small{min-height:34px;padding:4px 12px;font-size:.85rem}
+.week{display:grid;grid-template-columns:auto 1fr;gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
+.week.done{opacity:.6}
+.wk{font-family:var(--display);font-weight:700;font-size:1.05rem;width:58px;text-align:center;border-radius:12px;padding:6px 0;color:#fff;height:fit-content}
+.task{display:flex;gap:10px;align-items:flex-start;padding:4px 0;cursor:pointer}
+.task input{width:22px;height:22px;flex:none;margin-top:1px;accent-color:var(--ok)}
+.task.b4 span{color:var(--t4);font-weight:700}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.stat .n{font-family:var(--display);font-size:1.8rem;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.stat .l{color:var(--muted);font-size:.82rem;font-weight:700}
+.seg{display:inline-flex;background:var(--surface2);border-radius:12px;padding:3px;gap:3px;flex-wrap:wrap}
+.seg button{border:0;background:transparent;min-height:38px;padding:6px 12px;font-size:.88rem}
+.seg button[aria-pressed="true"]{background:var(--surface);box-shadow:var(--shadow)}
+label.inline{display:flex;align-items:center;gap:8px;font-weight:700;font-size:.9rem}
+input[type=range]{accent-color:var(--red)}
+@media (max-width:520px){.opts{grid-template-columns:1fr}.answer-row{grid-template-columns:1fr 1fr}h1{font-size:1.35rem}}
+@media (prefers-reduced-motion:no-preference){.flash{transition:transform .25s}.flash:active{transform:scale(.98)}}
+
+/* engels-specifiek */
+.en{font-family:var(--display);font-weight:600}
+.word .en{font-size:1.25rem;line-height:1.15}
+.flash .big{font-family:var(--display);font-weight:600;font-size:clamp(2.4rem,9vw,4.2rem);line-height:1.1;overflow-wrap:anywhere}
+.lvl{display:flex;align-items:center;gap:10px}
+.lvl .badge{min-width:44px;height:34px;border-radius:10px;display:grid;place-items:center;color:#fff;font-family:var(--display);font-weight:700;padding:0 8px}
+.soon{opacity:.55}
+.spellin{width:100%;font-size:1.6rem;font-family:var(--display);text-align:center;padding:12px;border-radius:14px;border:2px solid var(--line);background:var(--surface);color:var(--fg)}
+.spellin:focus{outline:none;border-color:var(--red)}
+.diff{font-family:var(--display);font-size:1.7rem;letter-spacing:.04em}
+.diff .ok{color:var(--ok)} .diff .no{color:var(--bad);text-decoration:underline}
+.tiles{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;min-height:58px;padding:8px;border-radius:14px}
+.tiles.answer{border:2px dashed var(--line);background:var(--surface2)}
+.tile{font-family:var(--display);font-size:1.15rem;font-weight:600;min-height:46px;padding:6px 14px;border-radius:12px;border:1px solid var(--line);background:var(--surface);box-shadow:0 2px 0 var(--line)}
+.tile.used{visibility:hidden}
+.tile.badpos{border-color:var(--bad);background:var(--bad-soft)}
+.tiles.solved .tile{border-color:var(--ok);background:var(--ok-soft)}
+.sentence{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border:1px solid var(--line);border-radius:14px;background:var(--surface);text-align:left;width:100%;margin-bottom:6px}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div class="logo" aria-hidden="true" style="font-family:var(--display);font-size:20px">Aa</div>
+    <div style="min-width:0;flex:1 1 260px">
+      <h1>Engels Oefenapp</h1>
+      <div class="sub">Engels leren van A1 tot B2 · woorden, spelling, zinnen, flashcards, quiz en je leerroute</div>
+    </div>
+    <div class="seg langsw" id="langsw" role="group" aria-label="Taal / Język"></div>
+  </header>
+  <div id="voiceNote"></div>
+  <main id="view"></main>
+</div>
+
+<nav class="tabs" aria-label="Onderdelen">
+  <div class="in">
+    <button data-tab="leren"><span class="ic">Aa</span>Woorden</button>
+    <button data-tab="flash"><span class="ic">🃏</span>Flashcards</button>
+    <button data-tab="spell"><span class="ic">✍️</span>Spelling</button>
+    <button data-tab="zin"><span class="ic">🧩</span>Zinnen</button>
+    <button data-tab="quiz"><span class="ic">❓</span>Quiz</button>
+    <button data-tab="route"><span class="ic">🗺️</span>Leerroute</button>
+  </div>
+</nav>
+
+<script>
+const LEVELS = [{"id":"A1","c":"#2A9D8F","l":[{"k":"A1-1","t":{"nl":"Begroeten en kennismaken","pl":"Powitania i poznawanie się","en":"Greetings and introductions"},"c":"#E63946","w":[["hello","hallo","cześć","👋"],["hi","hoi","hej",""],["good morning","goedemorgen","dzień dobry (rano)","🌅"],["good afternoon","goedemiddag","dzień dobry (po południu)",""],["good evening","goedenavond","dobry wieczór","🌆"],["good night","welterusten","dobranoc","🌙"],["goodbye","tot ziens","do widzenia",""],["bye","doei","pa",""],["see you later","tot later","do zobaczenia",""],["please","alsjeblieft","proszę",""],["thank you","dank je wel","dziękuję","🙏"],["thanks","bedankt","dzięki",""],["sorry","sorry","przepraszam",""],["excuse me","pardon","przepraszam (proszę o uwagę)",""],["yes","ja","tak",""],["no","nee","nie",""],["name","naam","imię",""],["my","mijn","mój",""],["your","jouw","twój",""],["I","ik","ja",""],["you","jij","ty",""],["he","hij","on",""],["she","zij (enkelvoud)","ona",""],["we","wij","my",""],["they","zij (meervoud)","oni",""],["nice to meet you","leuk je te ontmoeten","miło cię poznać","🤝"],["how are you?","hoe gaat het?","jak się masz?",""],["fine","goed","dobrze",""]],"s":[["Hello, my name is Anna.","Hallo, mijn naam is Anna.","Cześć, mam na imię Anna."],["What is your name?","Wat is jouw naam?","Jak masz na imię?"],["Nice to meet you.","Leuk je te ontmoeten.","Miło cię poznać."],["How are you today?","Hoe gaat het vandaag met je?","Jak się dziś masz?"],["I am fine, thank you.","Het gaat goed, dank je wel.","Dobrze, dziękuję."],["Good morning, teacher!","Goedemorgen, juf/meester!","Dzień dobry, proszę pani/pana!"],["See you later!","Tot later!","Do zobaczenia!"],["Excuse me, where is the toilet?","Pardon, waar is het toilet?","Przepraszam, gdzie jest toaleta?"]]},{"k":"A1-2","t":{"nl":"Getallen","pl":"Liczby","en":"Numbers"},"c":"#F4A261","w":[["zero","nul","zero","0️⃣"],["one","een","jeden","1️⃣"],["two","twee","dwa","2️⃣"],["three","drie","trzy","3️⃣"],["four","vier","cztery","4️⃣"],["five","vijf","pięć","5️⃣"],["six","zes","sześć","6️⃣"],["seven","zeven","siedem","7️⃣"],["eight","acht","osiem","8️⃣"],["nine","negen","dziewięć","9️⃣"],["ten","tien","dziesięć","🔟"],["eleven","elf","jedenaście",""],["twelve","twaalf","dwanaście",""],["thirteen","dertien","trzynaście",""],["fifteen","vijftien","piętnaście",""],["twenty","twintig","dwadzieścia",""],["thirty","dertig","trzydzieści",""],["forty","veertig","czterdzieści",""],["fifty","vijftig","pięćdziesiąt",""],["hundred","honderd","sto","💯"],["thousand","duizend","tysiąc",""],["first","eerste","pierwszy","🥇"],["second","tweede","drugi","🥈"],["third","derde","trzeci","🥉"],["how many","hoeveel (te tellen)","ile",""],["how much","hoeveel (geld)","ile (kosztuje)",""],["number","nummer, getal","numer, liczba","🔢"],["age","leeftijd","wiek",""]],"s":[["I am thirty years old.","Ik ben dertig jaar oud.","Mam trzydzieści lat."],["How old are you?","Hoe oud ben jij?","Ile masz lat?"],["My phone number is five, two, eight.","Mijn telefoonnummer is vijf, twee, acht.","Mój numer telefonu to pięć, dwa, osiem."],["How many brothers do you have?","Hoeveel broers heb jij?","Ilu masz braci?"],["I have two sisters.","Ik heb twee zussen.","Mam dwie siostry."],["How much is this?","Hoeveel kost dit?","Ile to kosztuje?"],["It is ten euros.","Het is tien euro.","To kosztuje dziesięć euro."],["This is my first day.","Dit is mijn eerste dag.","To mój pierwszy dzień."]]},{"k":"A1-3","t":{"nl":"Kleuren en vormen","pl":"Kolory i kształty","en":"Colours and shapes"},"c":"#2A9D8F","w":[["red","rood","czerwony","🟥"],["blue","blauw","niebieski","🟦"],["yellow","geel","żółty","🟨"],["green","groen","zielony","🟩"],["black","zwart","czarny","⬛"],["white","wit","biały","⬜"],["orange","oranje","pomarańczowy","🟧"],["purple","paars","fioletowy","🟪"],["pink","roze","różowy","🩷"],["brown","bruin","brązowy","🟫"],["grey","grijs","szary","🩶"],["colour","kleur","kolor","🎨"],["light","licht (kleur)","jasny",""],["dark","donker","ciemny",""],["circle","cirkel","koło","⚪"],["square","vierkant","kwadrat","◻️"],["triangle","driehoek","trójkąt","🔺"],["star","ster","gwiazda","⭐"],["heart","hart","serce","❤️"],["line","lijn","linia",""],["big","groot","duży",""],["small","klein","mały",""],["long","lang","długi",""],["short","kort","krótki",""],["round","rond","okrągły",""],["favourite","favoriet, lievelings-","ulubiony",""]],"s":[["My favourite colour is blue.","Mijn lievelingskleur is blauw.","Mój ulubiony kolor to niebieski."],["The car is red.","De auto is rood.","Samochód jest czerwony."],["I have a big black dog.","Ik heb een grote zwarte hond.","Mam dużego czarnego psa."],["What colour is your bag?","Welke kleur heeft jouw tas?","Jakiego koloru jest twoja torba?"],["Draw a small circle.","Teken een kleine cirkel.","Narysuj małe koło."],["The sky is light blue.","De lucht is lichtblauw.","Niebo jest jasnoniebieskie."],["She likes pink and purple.","Zij houdt van roze en paars.","Ona lubi różowy i fioletowy."],["A square has four lines.","Een vierkant heeft vier lijnen.","Kwadrat ma cztery linie."]]},{"k":"A1-4","t":{"nl":"Familie","pl":"Rodzina","en":"Family"},"c":"#E76F51","w":[["family","familie, gezin","rodzina","👪"],["mother","moeder","matka","👩"],["father","vader","ojciec","👨"],["mum","mama","mama",""],["dad","papa","tata",""],["parents","ouders","rodzice",""],["brother","broer","brat","👦"],["sister","zus","siostra","👧"],["son","zoon","syn",""],["daughter","dochter","córka",""],["baby","baby","niemowlę","👶"],["child","kind","dziecko","🧒"],["children","kinderen","dzieci",""],["grandmother","oma","babcia","👵"],["grandfather","opa","dziadek","👴"],["uncle","oom","wujek",""],["aunt","tante","ciocia",""],["cousin","neef, nicht","kuzyn, kuzynka",""],["husband","man (echtgenoot)","mąż",""],["wife","vrouw (echtgenote)","żona",""],["friend","vriend, vriendin","przyjaciel","🧑‍🤝‍🧑"],["boy","jongen","chłopiec","👦"],["girl","meisje","dziewczynka","👧"],["man","man","mężczyzna","👨"],["woman","vrouw","kobieta","👩"],["people","mensen","ludzie","👥"],["have got","hebben","mieć",""]],"s":[["This is my family.","Dit is mijn familie.","To jest moja rodzina."],["I have got one brother and one sister.","Ik heb een broer en een zus.","Mam jednego brata i jedną siostrę."],["My mother is a teacher.","Mijn moeder is lerares.","Moja mama jest nauczycielką."],["His father is very tall.","Zijn vader is erg lang.","Jego tata jest bardzo wysoki."],["Our grandmother lives in Poland.","Onze oma woont in Polen.","Nasza babcia mieszka w Polsce."],["They have got three children.","Zij hebben drie kinderen.","Oni mają troje dzieci."],["Is she your sister?","Is zij jouw zus?","Czy ona jest twoją siostrą?"],["My best friend is called Tom.","Mijn beste vriend heet Tom.","Mój najlepszy przyjaciel ma na imię Tom."]]},{"k":"A1-5","t":{"nl":"Het lichaam","pl":"Ciało","en":"The body"},"c":"#9B5DE5","w":[["body","lichaam","ciało","🧍"],["head","hoofd","głowa","🗣️"],["hair","haar","włosy","💇"],["face","gezicht","twarz","🙂"],["eye","oog","oko","👁️"],["ear","oor","ucho","👂"],["nose","neus","nos","👃"],["mouth","mond","usta","👄"],["tooth","tand","ząb","🦷"],["teeth","tanden","zęby",""],["neck","nek","szyja",""],["arm","arm","ramię","💪"],["hand","hand","dłoń, ręka","✋"],["finger","vinger","palec","☝️"],["leg","been","noga","🦵"],["foot","voet","stopa","🦶"],["feet","voeten","stopy",""],["back","rug","plecy",""],["stomach","buik, maag","brzuch",""],["heart","hart","serce","❤️"],["hurt","pijn doen","boleć","🤕"],["ill","ziek","chory","🤒"],["tired","moe","zmęczony","😴"],["doctor","dokter","lekarz","🧑‍⚕️"],["medicine","medicijn","lekarstwo","💊"],["headache","hoofdpijn","ból głowy",""]],"s":[["I have got a headache.","Ik heb hoofdpijn.","Boli mnie głowa."],["My leg hurts.","Mijn been doet pijn.","Boli mnie noga."],["She has got long brown hair.","Zij heeft lang bruin haar.","Ona ma długie brązowe włosy."],["Wash your hands, please.","Was je handen, alsjeblieft.","Umyj ręce, proszę."],["He has got blue eyes.","Hij heeft blauwe ogen.","On ma niebieskie oczy."],["I am ill today.","Ik ben vandaag ziek.","Jestem dziś chory."],["You need to see a doctor.","Je moet naar een dokter.","Musisz iść do lekarza."],["Brush your teeth every day.","Poets je tanden elke dag.","Myj zęby codziennie."]]},{"k":"A1-6","t":{"nl":"Eten","pl":"Jedzenie","en":"Food"},"c":"#F77F00","w":[["food","eten","jedzenie","🍽️"],["bread","brood","chleb","🍞"],["butter","boter","masło","🧈"],["cheese","kaas","ser","🧀"],["egg","ei","jajko","🥚"],["meat","vlees","mięso","🥩"],["chicken","kip","kurczak","🍗"],["fish","vis","ryba","🐟"],["rice","rijst","ryż","🍚"],["pasta","pasta","makaron","🍝"],["soup","soep","zupa","🍲"],["salad","salade","sałatka","🥗"],["pizza","pizza","pizza","🍕"],["sandwich","broodje","kanapka","🥪"],["cake","taart","ciasto","🍰"],["biscuit","koekje","ciastko","🍪"],["chocolate","chocolade","czekolada","🍫"],["ice cream","ijs","lody","🍦"],["sugar","suiker","cukier",""],["salt","zout","sól","🧂"],["breakfast","ontbijt","śniadanie","🥣"],["lunch","lunch","obiad (w południe)",""],["dinner","avondeten","kolacja",""],["eat","eten","jeść",""],["hungry","honger hebben","głodny",""],["delicious","heerlijk","pyszny","😋"]],"s":[["I eat bread for breakfast.","Ik eet brood als ontbijt.","Jem chleb na śniadanie."],["Are you hungry?","Heb je honger?","Jesteś głodny?"],["This soup is delicious.","Deze soep is heerlijk.","Ta zupa jest pyszna."],["We have pizza for dinner.","Wij eten pizza als avondeten.","Na kolację jemy pizzę."],["I don't eat meat.","Ik eet geen vlees.","Nie jem mięsa."],["Can I have some cheese, please?","Mag ik wat kaas, alsjeblieft?","Czy mogę prosić o trochę sera?"],["She likes chocolate ice cream.","Zij houdt van chocolade-ijs.","Ona lubi lody czekoladowe."],["Lunch is at twelve o'clock.","De lunch is om twaalf uur.","Obiad jest o dwunastej."]]},{"k":"A1-7","t":{"nl":"Drinken, fruit en groente","pl":"Napoje, owoce i warzywa","en":"Drinks, fruit and vegetables"},"c":"#55A630","w":[["drink","drinken","pić",""],["water","water","woda","💧"],["milk","melk","mleko","🥛"],["juice","sap","sok","🧃"],["tea","thee","herbata","🍵"],["coffee","koffie","kawa","☕"],["thirsty","dorst hebben","spragniony",""],["fruit","fruit","owoce",""],["apple","appel","jabłko","🍎"],["banana","banaan","banan","🍌"],["orange","sinaasappel","pomarańcza","🍊"],["grapes","druiven","winogrona","🍇"],["strawberry","aardbei","truskawka","🍓"],["lemon","citroen","cytryna","🍋"],["pear","peer","gruszka","🍐"],["watermelon","watermeloen","arbuz","🍉"],["vegetables","groente","warzywa",""],["potato","aardappel","ziemniak","🥔"],["tomato","tomaat","pomidor","🍅"],["carrot","wortel","marchewka","🥕"],["onion","ui","cebula","🧅"],["cucumber","komkommer","ogórek","🥒"],["cup","kopje","filiżanka","☕"],["glass","glas","szklanka","🥛"],["bottle","fles","butelka","🍾"]],"s":[["I am thirsty.","Ik heb dorst.","Chce mi się pić."],["Can I have a glass of water?","Mag ik een glas water?","Czy mogę prosić o szklankę wody?"],["I drink coffee every morning.","Ik drink elke ochtend koffie.","Codziennie rano piję kawę."],["Apples and bananas are fruit.","Appels en bananen zijn fruit.","Jabłka i banany to owoce."],["Do you want tea or coffee?","Wil je thee of koffie?","Chcesz herbatę czy kawę?"],["Children like orange juice.","Kinderen houden van sinaasappelsap.","Dzieci lubią sok pomarańczowy."],["Carrots are good for you.","Wortels zijn gezond voor je.","Marchewki są zdrowe."],["There is a bottle of milk.","Er is een fles melk.","Jest butelka mleka."]]},{"k":"A1-8","t":{"nl":"Huis en kamers","pl":"Dom i pokoje","en":"House and rooms"},"c":"#457B9D","w":[["house","huis","dom","🏠"],["flat","appartement","mieszkanie","🏢"],["home","thuis","dom (miejsce)","🏡"],["room","kamer","pokój",""],["kitchen","keuken","kuchnia","🍳"],["bathroom","badkamer","łazienka","🛁"],["bedroom","slaapkamer","sypialnia","🛏️"],["living room","woonkamer","salon","🛋️"],["garden","tuin","ogród","🌷"],["door","deur","drzwi","🚪"],["window","raam","okno","🪟"],["wall","muur","ściana","🧱"],["floor","vloer","podłoga",""],["stairs","trap","schody",""],["table","tafel","stół",""],["chair","stoel","krzesło","🪑"],["bed","bed","łóżko","🛏️"],["sofa","bank (zitbank)","kanapa","🛋️"],["lamp","lamp","lampa","💡"],["TV","tv","telewizor","📺"],["fridge","koelkast","lodówka",""],["key","sleutel","klucz","🔑"],["shower","douche","prysznic","🚿"],["toilet","toilet, wc","toaleta","🚽"],["live","wonen","mieszkać",""],["there is","er is","jest (coś gdzieś)",""],["there are","er zijn","są (coś gdzieś)",""]],"s":[["I live in a small flat.","Ik woon in een klein appartement.","Mieszkam w małym mieszkaniu."],["There is a big table in the kitchen.","Er staat een grote tafel in de keuken.","W kuchni jest duży stół."],["My bedroom has two windows.","Mijn slaapkamer heeft twee ramen.","Moja sypialnia ma dwa okna."],["Where are my keys?","Waar zijn mijn sleutels?","Gdzie są moje klucze?"],["There are four chairs in the living room.","Er staan vier stoelen in de woonkamer.","W salonie są cztery krzesła."],["The milk is in the fridge.","De melk staat in de koelkast.","Mleko jest w lodówce."],["Please close the door.","Doe de deur dicht, alsjeblieft.","Zamknij drzwi, proszę."],["We have got a nice garden.","Wij hebben een mooie tuin.","Mamy ładny ogród."]]},{"k":"A1-9","t":{"nl":"Kleding","pl":"Ubrania","en":"Clothes"},"c":"#C9184A","w":[["clothes","kleren","ubrania","👚"],["shirt","overhemd","koszula","👔"],["T-shirt","T-shirt","koszulka","👕"],["trousers","broek","spodnie","👖"],["jeans","spijkerbroek","dżinsy","👖"],["dress","jurk","sukienka","👗"],["skirt","rok","spódnica",""],["jacket","jas, jasje","kurtka","🧥"],["coat","mantel, jas","płaszcz","🧥"],["jumper","trui","sweter",""],["shoes","schoenen","buty","👟"],["boots","laarzen","kozaki, buty za kostkę","👢"],["socks","sokken","skarpetki","🧦"],["hat","hoed, muts","kapelusz, czapka","👒"],["cap","pet","czapka z daszkiem","🧢"],["scarf","sjaal","szalik","🧣"],["gloves","handschoenen","rękawiczki","🧤"],["bag","tas","torba","👜"],["glasses","bril","okulary","👓"],["watch","horloge","zegarek","⌚"],["wear","dragen (kleding)","nosić",""],["put on","aantrekken","zakładać",""],["take off","uittrekken","zdejmować",""],["new","nieuw","nowy",""],["old","oud","stary",""],["size","maat","rozmiar",""]],"s":[["I wear jeans and a T-shirt.","Ik draag een spijkerbroek en een T-shirt.","Noszę dżinsy i koszulkę."],["Put on your coat, it is cold.","Trek je jas aan, het is koud.","Załóż płaszcz, jest zimno."],["She has got a new red dress.","Zij heeft een nieuwe rode jurk.","Ona ma nową czerwoną sukienkę."],["Where are my black shoes?","Waar zijn mijn zwarte schoenen?","Gdzie są moje czarne buty?"],["Take off your shoes, please.","Doe je schoenen uit, alsjeblieft.","Zdejmij buty, proszę."],["What size are you?","Welke maat heb je?","Jaki masz rozmiar?"],["He wears glasses.","Hij draagt een bril.","On nosi okulary."],["I need a warm scarf and gloves.","Ik heb een warme sjaal en handschoenen nodig.","Potrzebuję ciepłego szalika i rękawiczek."]]},{"k":"A1-10","t":{"nl":"Dieren","pl":"Zwierzęta","en":"Animals"},"c":"#6A994E","w":[["animal","dier","zwierzę",""],["dog","hond","pies","🐕"],["cat","kat","kot","🐈"],["bird","vogel","ptak","🐦"],["fish","vis","ryba","🐟"],["horse","paard","koń","🐎"],["cow","koe","krowa","🐄"],["pig","varken","świnia","🐖"],["sheep","schaap","owca","🐑"],["chicken","kip","kura","🐔"],["duck","eend","kaczka","🦆"],["rabbit","konijn","królik","🐇"],["mouse","muis","mysz","🐁"],["lion","leeuw","lew","🦁"],["tiger","tijger","tygrys","🐅"],["elephant","olifant","słoń","🐘"],["monkey","aap","małpa","🐒"],["bear","beer","niedźwiedź","🐻"],["snake","slang","wąż","🐍"],["frog","kikker","żaba","🐸"],["spider","spin","pająk","🕷️"],["bee","bij","pszczoła","🐝"],["pet","huisdier","zwierzątko domowe",""],["zoo","dierentuin","zoo",""],["farm","boerderij","farma","🚜"]],"s":[["Do you have a pet?","Heb jij een huisdier?","Czy masz zwierzątko?"],["My cat is black and white.","Mijn kat is zwart-wit.","Mój kot jest czarno-biały."],["The dog is in the garden.","De hond is in de tuin.","Pies jest w ogrodzie."],["We see lions at the zoo.","Wij zien leeuwen in de dierentuin.","W zoo widzimy lwy."],["Cows and pigs live on a farm.","Koeien en varkens wonen op een boerderij.","Krowy i świnie mieszkają na farmie."],["I am afraid of spiders.","Ik ben bang voor spinnen.","Boję się pająków."],["The bird can fly.","De vogel kan vliegen.","Ptak potrafi latać."],["Elephants are very big.","Olifanten zijn heel groot.","Słonie są bardzo duże."]]},{"k":"A1-11","t":{"nl":"Tijd en dagen","pl":"Czas i dni","en":"Time and days"},"c":"#3A86FF","w":[["day","dag","dzień",""],["week","week","tydzień",""],["month","maand","miesiąc",""],["year","jaar","rok",""],["today","vandaag","dzisiaj",""],["tomorrow","morgen","jutro",""],["yesterday","gisteren","wczoraj",""],["morning","ochtend","rano","🌅"],["afternoon","middag","popołudnie",""],["evening","avond","wieczór","🌆"],["night","nacht","noc","🌙"],["Monday","maandag","poniedziałek",""],["Tuesday","dinsdag","wtorek",""],["Wednesday","woensdag","środa",""],["Thursday","donderdag","czwartek",""],["Friday","vrijdag","piątek",""],["Saturday","zaterdag","sobota",""],["Sunday","zondag","niedziela",""],["weekend","weekend","weekend",""],["hour","uur","godzina",""],["minute","minuut","minuta",""],["o'clock","uur (klok)","godzina (na zegarze)","🕒"],["half past","half (na het uur)","wpół do (po pełnej godzinie)",""],["quarter","kwartier","kwadrans",""],["clock","klok","zegar","🕰️"],["time","tijd","czas","⏰"],["now","nu","teraz",""]],"s":[["What time is it?","Hoe laat is het?","Która jest godzina?"],["It is three o'clock.","Het is drie uur.","Jest trzecia."],["I work from Monday to Friday.","Ik werk van maandag tot vrijdag.","Pracuję od poniedziałku do piątku."],["See you tomorrow!","Tot morgen!","Do jutra!"],["We go swimming on Saturday.","Wij gaan zaterdag zwemmen.","W sobotę idziemy pływać."],["The train leaves at half past six.","De trein vertrekt om half zeven.","Pociąg odjeżdża o wpół do siódmej."],["I get up early in the morning.","Ik sta vroeg op in de ochtend.","Wstaję wcześnie rano."],["What day is it today?","Welke dag is het vandaag?","Jaki jest dzisiaj dzień?"]]},{"k":"A1-12","t":{"nl":"Maanden, seizoenen en weer","pl":"Miesiące, pory roku i pogoda","en":"Months, seasons and weather"},"c":"#00B4D8","w":[["January","januari","styczeń",""],["February","februari","luty",""],["March","maart","marzec",""],["April","april","kwiecień",""],["May","mei","maj",""],["June","juni","czerwiec",""],["July","juli","lipiec",""],["August","augustus","sierpień",""],["September","september","wrzesień",""],["October","oktober","październik",""],["November","november","listopad",""],["December","december","grudzień",""],["spring","lente","wiosna","🌸"],["summer","zomer","lato","☀️"],["autumn","herfst","jesień","🍂"],["winter","winter","zima","❄️"],["weather","weer","pogoda",""],["sun","zon","słońce","☀️"],["rain","regen","deszcz","🌧️"],["snow","sneeuw","śnieg","🌨️"],["wind","wind","wiatr","💨"],["cloud","wolk","chmura","☁️"],["hot","heet","gorąco","🥵"],["cold","koud","zimno","🥶"],["warm","warm","ciepło",""],["sunny","zonnig","słonecznie","🌞"],["birthday","verjaardag","urodziny","🎂"]],"s":[["My birthday is in May.","Mijn verjaardag is in mei.","Moje urodziny są w maju."],["It is sunny today.","Het is zonnig vandaag.","Dzisiaj jest słonecznie."],["It is cold in winter.","Het is koud in de winter.","Zimą jest zimno."],["Is it raining?","Regent het?","Czy pada deszcz?"],["I love summer because it is hot.","Ik hou van de zomer omdat het heet is.","Kocham lato, bo jest gorąco."],["What is the weather like?","Hoe is het weer?","Jaka jest pogoda?"],["There is a lot of snow in January.","Er ligt veel sneeuw in januari.","W styczniu jest dużo śniegu."],["The leaves are brown in autumn.","De bladeren zijn bruin in de herfst.","Jesienią liście są brązowe."]]},{"k":"A1-13","t":{"nl":"School en klas","pl":"Szkoła i klasa","en":"School and classroom"},"c":"#8338EC","w":[["school","school","szkoła","🏫"],["class","klas, les","klasa, lekcja",""],["classroom","klaslokaal","sala lekcyjna",""],["teacher","leraar","nauczyciel","🧑‍🏫"],["student","leerling, student","uczeń, student","🧑‍🎓"],["book","boek","książka","📕"],["notebook","schrift","zeszyt","📓"],["pen","pen","długopis","🖊️"],["pencil","potlood","ołówek","✏️"],["rubber","gum","gumka",""],["ruler","liniaal","linijka","📏"],["desk","bureau, schoolbank","ławka, biurko",""],["board","bord","tablica",""],["computer","computer","komputer","💻"],["homework","huiswerk","praca domowa",""],["lesson","les","lekcja",""],["test","toets","test, sprawdzian","📝"],["question","vraag","pytanie","❓"],["answer","antwoord","odpowiedź",""],["word","woord","słowo",""],["English","Engels","angielski","🇬🇧"],["learn","leren","uczyć się",""],["read","lezen","czytać","📖"],["write","schrijven","pisać","✍️"],["listen","luisteren","słuchać","🎧"],["speak","spreken","mówić","🗣️"],["understand","begrijpen","rozumieć",""]],"s":[["Open your books, please.","Open jullie boeken, alsjeblieft.","Otwórzcie książki, proszę."],["I don't understand.","Ik begrijp het niet.","Nie rozumiem."],["Can you say that again, please?","Kun je dat nog een keer zeggen, alsjeblieft?","Czy możesz to powtórzyć, proszę?"],["I learn English at school.","Ik leer Engels op school.","Uczę się angielskiego w szkole."],["We have a test on Friday.","Wij hebben vrijdag een toets.","W piątek mamy test."],["Can I borrow a pencil?","Mag ik een potlood lenen?","Czy mogę pożyczyć ołówek?"],["What does this word mean?","Wat betekent dit woord?","Co znaczy to słowo?"],["Listen and write the answer.","Luister en schrijf het antwoord op.","Posłuchaj i napisz odpowiedź."]]},{"k":"A1-14","t":{"nl":"In de stad en beroepen","pl":"W mieście i zawody","en":"Town and jobs"},"c":"#FB5607","w":[["town","stad (klein)","miasteczko",""],["city","stad (groot)","miasto","🏙️"],["street","straat","ulica",""],["shop","winkel","sklep","🏪"],["supermarket","supermarkt","supermarket","🛒"],["bank","bank (geld)","bank","🏦"],["hospital","ziekenhuis","szpital","🏥"],["park","park","park","🌳"],["restaurant","restaurant","restauracja","🍴"],["café","café","kawiarnia",""],["station","station","dworzec","🚉"],["library","bibliotheek","biblioteka","📚"],["post office","postkantoor","poczta","🏤"],["church","kerk","kościół","⛪"],["cinema","bioscoop","kino","🎬"],["job","baan","praca (posada)",""],["work","werken, werk","pracować, praca",""],["office","kantoor","biuro","🏢"],["nurse","verpleegkundige","pielęgniarka","🧑‍⚕️"],["police officer","politieagent","policjant","👮"],["driver","chauffeur","kierowca",""],["cook","kok","kucharz","🧑‍🍳"],["farmer","boer","rolnik","🧑‍🌾"],["shop assistant","winkelmedewerker","sprzedawca",""],["near","dichtbij","blisko",""],["far","ver","daleko",""]],"s":[["Where is the station?","Waar is het station?","Gdzie jest dworzec?"],["The bank is near the park.","De bank is dichtbij het park.","Bank jest blisko parku."],["I work in an office.","Ik werk op een kantoor.","Pracuję w biurze."],["My sister is a nurse.","Mijn zus is verpleegkundige.","Moja siostra jest pielęgniarką."],["Is the supermarket far from here?","Is de supermarkt ver hiervandaan?","Czy supermarket jest daleko stąd?"],["Let's go to the cinema tonight.","Laten we vanavond naar de bioscoop gaan.","Chodźmy dziś wieczorem do kina."],["What is your job?","Wat is jouw beroep?","Czym się zajmujesz?"],["There is a café on this street.","Er is een café in deze straat.","Na tej ulicy jest kawiarnia."]]},{"k":"A1-15","t":{"nl":"Belangrijke werkwoorden","pl":"Ważne czasowniki","en":"Important verbs"},"c":"#FF006E","w":[["be","zijn","być",""],["have","hebben","mieć",""],["do","doen","robić",""],["go","gaan","iść, jechać",""],["come","komen","przychodzić",""],["make","maken","robić (tworzyć)",""],["see","zien","widzieć","👀"],["look","kijken","patrzeć",""],["like","leuk vinden","lubić","👍"],["love","houden van","kochać","❤️"],["want","willen","chcieć",""],["need","nodig hebben","potrzebować",""],["know","weten, kennen","wiedzieć, znać",""],["think","denken","myśleć","🤔"],["can","kunnen","móc, umieć",""],["open","openen","otwierać",""],["close","sluiten","zamykać",""],["buy","kopen","kupować","🛍️"],["sleep","slapen","spać","😴"],["get up","opstaan","wstawać",""],["help","helpen","pomagać",""],["play","spelen","grać, bawić się",""],["walk","lopen, wandelen","chodzić, spacerować","🚶"],["run","rennen","biegać","🏃"],["sit","zitten","siedzieć",""],["stand","staan","stać",""],["give","geven","dawać","🎁"],["take","nemen, pakken","brać",""]],"s":[["I like music.","Ik hou van muziek.","Lubię muzykę."],["Can you help me, please?","Kun je me helpen, alsjeblieft?","Czy możesz mi pomóc?"],["I want a cup of tea.","Ik wil een kopje thee.","Chcę filiżankę herbaty."],["We go to work by bus.","Wij gaan met de bus naar het werk.","Jeździmy do pracy autobusem."],["I don't know.","Ik weet het niet.","Nie wiem."],["She gets up at seven.","Zij staat om zeven uur op.","Ona wstaje o siódmej."],["Do you need help?","Heb je hulp nodig?","Czy potrzebujesz pomocy?"],["Sit down, please.","Ga zitten, alsjeblieft.","Usiądź, proszę."]]},{"k":"A1-16","t":{"nl":"Bijvoeglijke naamwoorden en gevoelens","pl":"Przymiotniki i uczucia","en":"Adjectives and feelings"},"c":"#FFBE0B","w":[["good","goed","dobry","👍"],["bad","slecht","zły","👎"],["happy","blij","szczęśliwy","😀"],["sad","verdrietig","smutny","😢"],["angry","boos","zły (zdenerwowany)","😠"],["afraid","bang","przestraszony","😨"],["bored","verveeld","znudzony","🥱"],["hungry","hongerig","głodny",""],["beautiful","mooi","piękny",""],["nice","leuk, aardig","miły, ładny",""],["easy","makkelijk","łatwy",""],["difficult","moeilijk","trudny",""],["fast","snel","szybki",""],["slow","langzaam","wolny (powolny)","🐢"],["young","jong","młody",""],["tall","lang (persoon)","wysoki",""],["cheap","goedkoop","tani",""],["expensive","duur","drogi","💰"],["clean","schoon","czysty",""],["dirty","vies","brudny",""],["full","vol","pełny",""],["empty","leeg","pusty",""],["right","juist, rechts","poprawny, prawy","✅"],["wrong","fout","zły (niepoprawny)","❌"],["very","heel, erg","bardzo",""],["really","echt","naprawdę",""]],"s":[["I am very happy today.","Ik ben heel blij vandaag.","Jestem dziś bardzo szczęśliwy."],["This test is difficult.","Deze toets is moeilijk.","Ten test jest trudny."],["The film was really good.","De film was echt goed.","Film był naprawdę dobry."],["Why are you sad?","Waarom ben je verdrietig?","Dlaczego jesteś smutny?"],["That phone is very expensive.","Die telefoon is erg duur.","Ten telefon jest bardzo drogi."],["Your answer is right.","Jouw antwoord is goed.","Twoja odpowiedź jest poprawna."],["The glass is empty.","Het glas is leeg.","Szklanka jest pusta."],["He is tall and young.","Hij is lang en jong.","On jest wysoki i młody."]]},{"k":"A1-17","t":{"nl":"Vervoer en reizen","pl":"Transport i podróże","en":"Transport and travel"},"c":"#06D6A0","w":[["car","auto","samochód","🚗"],["bus","bus","autobus","🚌"],["train","trein","pociąg","🚆"],["bike","fiets","rower","🚲"],["plane","vliegtuig","samolot","✈️"],["boat","boot","łódź","⛵"],["taxi","taxi","taksówka","🚕"],["airport","vliegveld","lotnisko","🛫"],["ticket","kaartje","bilet","🎫"],["map","kaart (landkaart)","mapa","🗺️"],["suitcase","koffer","walizka","🧳"],["passport","paspoort","paszport","🛂"],["holiday","vakantie","wakacje","🏖️"],["hotel","hotel","hotel","🏨"],["beach","strand","plaża","🏖️"],["sea","zee","morze","🌊"],["mountain","berg","góra","⛰️"],["country","land","kraj",""],["travel","reizen","podróżować",""],["drive","rijden (auto)","prowadzić (samochód)",""],["ride","rijden (fiets, paard)","jeździć (na rowerze)",""],["fly","vliegen","latać",""],["left","links","lewo","⬅️"],["right","rechts","prawo","➡️"],["straight on","rechtdoor","prosto","⬆️"]],"s":[["I go to work by bike.","Ik ga met de fiets naar mijn werk.","Jeżdżę do pracy rowerem."],["Where is the bus stop?","Waar is de bushalte?","Gdzie jest przystanek autobusowy?"],["A ticket to London, please.","Een kaartje naar Londen, alsjeblieft.","Poproszę bilet do Londynu."],["We go on holiday in August.","Wij gaan in augustus op vakantie.","Jedziemy na wakacje w sierpniu."],["Turn left at the bank.","Sla linksaf bij de bank.","Skręć w lewo przy banku."],["Go straight on.","Ga rechtdoor.","Idź prosto."],["I don't have my passport.","Ik heb mijn paspoort niet.","Nie mam paszportu."],["The plane is late.","Het vliegtuig is te laat.","Samolot jest opóźniony."]]},{"k":"A1-18","t":{"nl":"Hobby's en vrije tijd","pl":"Hobby i czas wolny","en":"Hobbies and free time"},"c":"#EF476F","w":[["hobby","hobby","hobby",""],["music","muziek","muzyka","🎵"],["song","liedje","piosenka","🎤"],["sing","zingen","śpiewać","🎤"],["dance","dansen","tańczyć","💃"],["swim","zwemmen","pływać","🏊"],["football","voetbal","piłka nożna","⚽"],["tennis","tennis","tenis","🎾"],["game","spel","gra","🎲"],["film","film","film","🎬"],["book","boek","książka","📚"],["photo","foto","zdjęcie","📷"],["camera","camera","aparat","📷"],["guitar","gitaar","gitara","🎸"],["piano","piano","pianino","🎹"],["paint","schilderen","malować","🎨"],["draw","tekenen","rysować","✏️"],["cook","koken","gotować","🍳"],["watch TV","tv kijken","oglądać telewizję","📺"],["play games","spelletjes spelen","grać w gry","🎮"],["friend","vriend","przyjaciel",""],["party","feest","impreza","🎉"],["free time","vrije tijd","czas wolny",""],["often","vaak","często",""],["sometimes","soms","czasami",""],["never","nooit","nigdy",""]],"s":[["What do you do in your free time?","Wat doe jij in je vrije tijd?","Co robisz w wolnym czasie?"],["I play football on Sundays.","Ik speel op zondag voetbal.","W niedziele gram w piłkę nożną."],["She can play the piano.","Zij kan piano spelen.","Ona umie grać na pianinie."],["We often watch films at home.","Wij kijken vaak films thuis.","Często oglądamy filmy w domu."],["I never dance.","Ik dans nooit.","Nigdy nie tańczę."],["Do you like music?","Hou jij van muziek?","Lubisz muzykę?"],["My hobby is cooking.","Mijn hobby is koken.","Moim hobby jest gotowanie."],["Let's take a photo!","Laten we een foto maken!","Zróbmy zdjęcie!"]]}]},{"id":"A2","c":"#3A86FF","l":[]},{"id":"B1","c":"#8338EC","l":[]},{"id":"B2","c":"#E76F51","l":[]}];
+const I18N = {"pl": {"Engels Oefenapp": "Aplikacja do nauki angielskiego", "Engels leren van A{n} tot B{n} · woorden, spelling, zinnen, flashcards, quiz en je leerroute": "Angielski od A{n} do B{n} · słowa, pisownia, zdania, fiszki, quiz i ścieżka nauki", "Onderdelen": "Sekcje", "Taal / Język": "Język", "Woorden": "Słowa", "Flashcards": "Fiszki", "Spelling": "Pisownia", "Zinnen": "Zdania", "Quiz": "Quiz", "Leerroute": "Ścieżka nauki", "woorden geleerd": "słów nauczonych", "zinnen gebouwd": "zdań ułożonych", "vandaag te herhalen": "do powtórki dziś", "woorden in totaal": "słów łącznie", "⏰ Herhaal nu {n} woorden": "⏰ Powtórz teraz {n} słów", "Kies een les": "Wybierz lekcję", "Kies les": "Wybierz lekcję", "Tik op een les om alle woorden en zinnen te zien en te horen.": "Dotknij lekcji, aby zobaczyć i usłyszeć wszystkie słowa i zdania.", "Niveau": "Poziom", "Les": "Lekcja", "woorden": "słów", "lessen": "lekcji", "binnenkort": "wkrótce", "Alles uit": "Wszystko z", "klaar": "gotowe", "geleerd": "nauczone", "gebouwd": "ułożone", "Etappe": "Etap", "Vraag": "Pytanie", "van": "z", "← Terug": "← Wstecz", "🃏 Flashcards": "🃏 Fiszki", "✍️ Spelling": "✍️ Pisownia", "🧩 Zinnen bouwen": "🧩 Układanie zdań", "❓ Quiz": "❓ Quiz", "Accent": "Akcent", "🇬🇧 Brits": "🇬🇧 Brytyjski", "🇺🇸 Amerikaans": "🇺🇸 Amerykański", "🐢 Spreektempo": "🐢 Tempo mowy", "Voorbeeldzinnen": "Przykładowe zdania", "⏰ Te herhalen vandaag ({n})": "⏰ Do powtórki dziś ({n})", "🖼 Woorden met plaatjes ({n})": "🖼 Słowa z obrazkami ({n})", "Voorkant": "Przód", "EN → NL": "EN → PL", "NL → EN": "PL → EN", "🖼 Plaatje → EN": "🖼 Obrazek → EN", "👂 Luisteren": "👂 Słuchanie", "Niveau:": "Poziom:", "🌱 Beginner": "🌱 Początkujący", "🔥 Gevorderd": "🔥 Zaawansowany", "Beginner: maximaal {n} nieuwe woorden per ronde. Elk nieuw woord krijg je eerst te zien en te horen, daarna word je overhoord.": "Początkujący: maksymalnie {n} nowych słów na rundę. Każde nowe słowo najpierw zobaczysz i usłyszysz, potem zostaniesz przepytany.", "Gevorderd: grotere rondes, zonder uitlegkaart vooraf.": "Zaawansowany: większe rundy, bez karty wprowadzającej.", "Niets te herhalen 🎉": "Nic do powtórki 🎉", "Kies een les in de lijst hierboven om nieuwe woorden te leren.": "Wybierz lekcję z listy powyżej, aby uczyć się nowych słów.", "Klaar! ✅ {n} goed · ❌ {n} nog oefenen": "Gotowe! ✅ {n} dobrze · ❌ {n} do ćwiczenia", "Woorden die je wist komen pas na een paar dagen terug. Woorden die je nog niet wist, zie je de volgende keer eerst.": "Słowa, które znałeś, wrócą dopiero za kilka dni. Słowa, których jeszcze nie znałeś, zobaczysz następnym razem jako pierwsze.", "Volgende ronde": "Następna runda", "✨ Nieuw woord": "✨ Nowe słowo", "{n} van {n}": "{n} z {n}", "Kijk, luister en zeg het {n}× hardop na.": "Patrz, słuchaj i powtórz na głos {n}×.", "🔊 Luister": "🔊 Posłuchaj", "🐢 Langzaam": "🐢 Wolno", "Ik heb het geleerd →": "Nauczyłem się →", "Vraag {n} van {n}": "Pytanie {n} z {n}", "Draai de kaart om": "Odwróć kartę", "Tik om om te draaien": "Dotknij, aby odwrócić", "💡 Hint": "💡 Podpowiedź", "Nog niet": "Jeszcze nie", "Weet ik!": "Wiem!", "Hoe heet dit in het Engels? Zeg het hardop!": "Jak to jest po angielsku? Powiedz na głos!", "Luister… welk woord is dit?": "Posłuchaj… jakie to słowo?", "Luister naar het woord en typ het in het Engels. Je ziet de betekenis als hulp. Hoofdletters maken niet uit.": "Posłuchaj słowa i wpisz je po angielsku. Znaczenie widzisz jako pomoc. Wielkość liter nie ma znaczenia.", "Woord {n} van {n}": "Słowo {n} z {n}", "Typ het Engelse woord": "Wpisz angielskie słowo", "Controleer": "Sprawdź", "💡 Hint: volgende letter": "💡 Podpowiedź: następna litera", "Bijna! Kijk naar de rode letters en probeer opnieuw.": "Prawie! Spójrz na czerwone litery i spróbuj ponownie.", "Goed gespeld! 👍": "Dobrze napisane! 👍", "Zo schrijf je het:": "Tak to się pisze:", "Volgende →": "Dalej →", "Klaar! {n} / {n} in één keer goed": "Gotowe! {n} / {n} dobrze za pierwszym razem", "Geen woorden in deze les.": "Brak słów w tej lekcji.", "Zinnen bouwen": "Układanie zdań", "Tik de Engelse woorden in de goede volgorde. Tik op een woord in je zin om het terug te zetten.": "Dotykaj angielskich słów we właściwej kolejności. Dotknij słowa w swoim zdaniu, aby je cofnąć.", "Zin {n} van {n}": "Zdanie {n} z {n}", "🔊 Luister naar de zin": "🔊 Posłuchaj zdania", "↺ Opnieuw": "↺ Od nowa", "Goed zo! 🎉": "Brawo! 🎉", "Nog niet helemaal. Het rode woord staat niet goed.": "Jeszcze nie całkiem. Czerwone słowo jest w złym miejscu.", "Klaar! 🎉 Alle zinnen van deze ronde gebouwd.": "Gotowe! 🎉 Wszystkie zdania z tej rundy ułożone.", "Geen zinnen in deze les.": "Brak zdań w tej lekcji.", "Soort quiz": "Rodzaj quizu", "Vraagsoort": "Rodzaj pytania", "🪜 Stap voor stap": "🪜 Krok po kroku", "🎲 Vrije quiz": "🎲 Wolny quiz", "Stap voor stap: je oefent steeds dezelfde {n} woorden in {n} etappes, van makkelijk naar moeilijk. Daarna volgen de volgende {n} woorden.": "Krok po kroku: ćwiczysz te same {n} słów w {n} etapach, od łatwego do trudnego. Potem przychodzi kolejnych {n} słów.", "Deze {n} woorden:": "Tych {n} słów:", "Wat betekent het?": "Co to znaczy?", "Wat hoor je?": "Co słyszysz?", "Hoe zeg je het in het Engels?": "Jak to powiedzieć po angielsku?", "Schrijf het woord": "Napisz słowo", "{n}. Wat betekent het?": "{n}. Co to znaczy?", "{n}. Wat hoor je?": "{n}. Co słyszysz?", "{n}. Hoe zeg je het in het Engels?": "{n}. Jak to powiedzieć po angielsku?", "{n}. Schrijf het woord": "{n}. Napisz słowo", "✓. Wat betekent het?": "✓. Co to znaczy?", "✓. Wat hoor je?": "✓. Co słyszysz?", "✓. Hoe zeg je het in het Engels?": "✓. Jak to powiedzieć po angielsku?", "✓. Schrijf het woord": "✓. Napisz słowo", "Etappe {n} · Vraag {n} van {n}": "Etap {n} · Pytanie {n} z {n}", "Score {n}": "Wynik {n}", "Etappe {n} klaar: {n} / {n} goed": "Etap {n} gotowy: {n} / {n} dobrze", "Volgende etappe:": "Następny etap:", "↺ Deze etappe opnieuw": "↺ Powtórz ten etap", "Door naar etappe {n} →": "Przejdź do etapu {n} →", "🔊 Speel af": "🔊 Odtwórz", "{n} / {n} goed": "{n} / {n} dobrze", "Fantastisch! 🌟": "Fantastycznie! 🌟", "Heel goed! 👍": "Bardzo dobrze! 👍", "Niet slecht, nog even oefenen.": "Nieźle, poćwicz jeszcze trochę.", "Doe deze woorden nog een keer. 💪": "Zrób te słowa jeszcze raz. 💪", "↺ Dezelfde {n} woorden": "↺ Te same {n} słów", "Volgende {n} woorden →": "Następne {n} słów →", "Nieuwe quiz": "Nowy quiz", "EN → betekenis": "EN → znaczenie", "👂 Hoor → woord": "👂 Słuchaj → słowo", "Betekenis → EN": "Znaczenie → EN", "✍️ Typ het woord": "✍️ Wpisz słowo", "Deze les heeft te weinig woorden voor een quiz. Kies een andere les.": "Ta lekcja ma za mało słów na quiz. Wybierz inną lekcję.", "Mijn leerroute": "Moja ścieżka nauki", "dag op rij · vandaag ✓": "dzień z rzędu · dziś ✓", "dagen op rij · vandaag ✓": "dni z rzędu · dziś ✓", "dag op rij · oefen vandaag!": "dzień z rzędu · poćwicz dziś!", "dagen op rij · oefen vandaag!": "dni z rzędu · poćwicz dziś!", "lessen voltooid": "lekcji ukończonych", "De rondjes vullen zich vanzelf als je oefent: elk goed antwoord bij flashcards, spelling of de quiz en elke zin die je bouwt telt mee. Een woord telt als geleerd als je het op {n} verschillende momenten goed hebt.": "Kółka wypełniają się same, gdy ćwiczysz: liczy się każda dobra odpowiedź w fiszkach, pisowni lub quizie i każde ułożone zdanie. Słowo liczy się jako nauczone, gdy odpowiesz dobrze w {n} różnych momentach.", "{n} lessen": "{n} lekcji", "GA VERDER": "KONTYNUUJ", "START": "START", "{n}% klaar": "{n}% gotowe", "🃏 Woorden": "🃏 Słowa", "🧩 Zinnen": "🧩 Zdania", "· {n}/{n} geleerd": "· {n}/{n} nauczone", "· {n}/{n} gebouwd": "· {n}/{n} ułożone", "Oefen": "Ćwicz", "☁️ Synchroniseren tussen apparaten": "☁️ Synchronizacja między urządzeniami", "Dezelfde voortgang op al je apparaten. Je doet dit één keer per apparaat.": "Te same postępy na wszystkich urządzeniach. Robisz to raz na każdym urządzeniu.", "🔑 Gebruik dezelfde sleutel als de Chinese app": "🔑 Użyj tego samego klucza co aplikacja do chińskiego", "Maak een sleutel aan op GitHub": "Utwórz klucz na GitHubie", ". Kies bij Expiration: No expiration, laat het vinkje bij gist aan staan en tik onderaan op Generate token.": ". Przy Expiration wybierz No expiration, zostaw zaznaczone gist i dotknij na dole Generate token.", "Kopieer de sleutel (begint met ghp_) en plak hem hieronder.": "Skopiuj klucz (zaczyna się od ghp_) i wklej go poniżej.", "Koppel": "Połącz", "Dit lijkt geen sleutel. Hij begint met ghp_ en is lang.": "To nie wygląda na klucz. Zaczyna się od ghp_ i jest długi.", "🔄 Bezig met koppelen…": "🔄 Łączenie…", "Deze sleutel werkt niet. Controleer of het vinkje bij \"gist\" aan stond.": "Ten klucz nie działa. Sprawdź, czy \"gist\" był zaznaczony.", "Koppelen lukte niet. Heb je internet?": "Połączenie nie powiodło się. Masz internet?", "Aan. Je voortgang wordt automatisch bewaard en gedeeld met je andere apparaten, telkens als je oefent of de app opent.": "Włączone. Twoje postępy są automatycznie zapisywane i udostępniane na innych urządzeniach, gdy ćwiczysz lub otwierasz aplikację.", "🔄 Nu synchroniseren": "🔄 Synchronizuj teraz", "Ontkoppel dit apparaat": "Odłącz to urządzenie", "🔄 Bezig met synchroniseren…": "🔄 Synchronizowanie…", "✅ Gesynchroniseerd ({n}:{n})": "✅ Zsynchronizowano ({n}:{n})", "📴 Geen internet. Je voortgang wordt bijgewerkt zodra je weer online bent.": "📴 Brak internetu. Postępy zostaną zaktualizowane, gdy wrócisz do sieci.", "⚠️ De sleutel werkt niet (meer). Ontkoppel en maak een nieuwe sleutel aan.": "⚠️ Klucz (już) nie działa. Odłącz i utwórz nowy klucz.", "⚠️ Synchroniseren lukte even niet. De app probeert het straks opnieuw.": "⚠️ Synchronizacja chwilowo się nie udała. Aplikacja spróbuje ponownie za chwilę.", "🔄 Voortgang overzetten": "🔄 Przenieś postępy", "Gebruik je de app op twee plekken zonder synchroniseren? Kopieer hier je voortgang en plak hem op de andere plek bij Leerroute → Voortgang overzetten.": "Używasz aplikacji w dwóch miejscach bez synchronizacji? Skopiuj tutaj postępy i wklej je w drugim miejscu w Ścieżka nauki → Przenieś postępy.", "📋 Kopieer mijn voortgang": "📋 Kopiuj moje postępy", "Plak hier de code van de andere plek": "Wklej tutaj kod z drugiego miejsca", "⬇️ Zet voortgang over": "⬇️ Przenieś postępy", "✓ Gekopieerd! Plak hem in de app op de andere plek.": "✓ Skopiowano! Wklej go w aplikacji w drugim miejscu.", "Kopiëren lukte niet vanzelf: houd je vinger op de code in het vak → Kopieer.": "Kopiowanie nie zadziałało automatycznie: przytrzymaj palec na kodzie w polu → Kopiuj.", "✓ Gelukt! {n} woorden overgezet.": "✓ Gotowe! Przeniesiono {n} słów.", "Deze code klopt niet. Kopieer hem opnieuw op de andere plek.": "Ten kod jest nieprawidłowy. Skopiuj go ponownie w drugim miejscu.", "Geen Engelse stem gevonden (nog).": "Nie znaleziono (jeszcze) angielskiego głosu.", "Op je iPad/iPhone: Instellingen → Toegankelijkheid → Gesproken materiaal → Stemmen → Engels → download een stem, bijv. \"Daniel\" of \"Serena\". Herlaad daarna deze pagina. Werkt het geluid al? Dan kun je dit negeren.": "Na iPadzie/iPhonie: Ustawienia → Dostępność → Mowa → Głosy → angielski → pobierz głos, np. \"Daniel\" lub \"Serena\". Potem odśwież tę stronę. Dźwięk już działa? To możesz to zignorować.", "Deze browser kan niet voorlezen.": "Ta przeglądarka nie potrafi czytać na głos.", "Open de app in Safari op je iPad of iPhone.": "Otwórz aplikację w Safari na iPadzie lub iPhonie."}};
+
+/* ---------- opslag ---------- */
+const P = 'eng-';
+const store = {
+  get(k, d){ try{ const v = localStorage.getItem(P + k); return v ? JSON.parse(v) : d; }catch(e){ return d; } },
+  set(k, v){ try{ localStorage.setItem(P + k, JSON.stringify(v)); }catch(e){} }
+};
+const FIRSTRUN = store.get('set', null) === null;
+let SETTINGS = store.get('set', {rate: 0.9, scope: 'A1-1', accent: 'gb'});
+let SRS = store.get('srs', {});
+let SENT = store.get('sent', {});
+let DAYS = store.get('days', []);
+
+/* ---------- taal ---------- */
+const LANG = (() => { if (SETTINGS.lang) return SETTINGS.lang; const n = (navigator.language || 'nl').toLowerCase(); SETTINGS.lang = n.startsWith('pl') ? 'pl' : 'nl'; store.set('set', SETTINGS); return SETTINGS.lang; })();
+try{ document.documentElement.lang = LANG; }catch(e){}
+const mean = w => LANG === 'pl' ? w.pl : w.nl;
+const ltitle = L => L.t[LANG] || L.t.nl;
+function trText(s){
+  const d = I18N[LANG]; if (!d) return null;
+  if (d[s] !== undefined) return d[s];
+  const nums = []; const key = s.replace(/\d+/g, m => { nums.push(m); return '{n}'; });
+  if (!nums.length || d[key] === undefined) return null;
+  let i = 0; return d[key].replace(/\{n\}/g, () => nums[i++] ?? '');
+}
+const T = s => trText(s) ?? s;
+const TRATTR = ['placeholder', 'aria-label', 'title', 'label'];
+function trNode(n){
+  if (LANG === 'nl') return;
+  if (n.nodeType === 3){
+    const v = n.nodeValue, t = v.trim(); if (!t || !/[A-Za-zÀ-ž]/.test(t)) return;
+    if (n.parentNode && n.parentNode.closest && n.parentNode.closest('.notr')) return;
+    const r = trText(t); if (r !== null && r !== t) n.nodeValue = v.slice(0, v.indexOf(t)) + r + v.slice(v.indexOf(t) + t.length);
+    else if (r === null && window.I18NMISS) I18NMISS.add(t);
+    return;
+  }
+  if (n.nodeType !== 1 || n.tagName === 'SCRIPT' || n.tagName === 'STYLE') return;
+  if (n.classList && n.classList.contains('notr')) return;
+  TRATTR.forEach(a => { if (n.hasAttribute && n.hasAttribute(a)){ const v = n.getAttribute(a), r = trText(v.trim()); if (r !== null && r !== v) n.setAttribute(a, r); } });
+  n.childNodes.forEach(trNode);
+}
+function startI18n(){
+  if (LANG === 'nl') return;
+  trNode(document.body);
+  new MutationObserver(ms => ms.forEach(m => {
+    if (m.type === 'characterData' || m.type === 'attributes') trNode(m.target); else m.addedNodes.forEach(trNode);
+  })).observe(document.body, {childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: TRATTR});
+}
+
+/* ---------- data ---------- */
+const ALL = [], SENTS = [], LESSONS = [];
+LEVELS.forEach(V => V.l.forEach(L => {
+  LESSONS.push(L); L.lv = V.id;
+  L.words = L.w.map((w, i) => { const o = {id: L.k + '-' + i, en: w[0], nl: w[1], pl: w[2], e: w[3] || '', k: L.k, lv: V.id, c: L.c}; ALL.push(o); return o; });
+  L.sents = L.s.map((s, i) => { const o = {id: L.k + '-s' + i, en: s[0], nl: s[1], pl: s[2], k: L.k}; SENTS.push(o); return o; });
+}));
+const LBYK = Object.fromEntries(LESSONS.map(L => [L.k, L]));
+const today = () => Math.floor(Date.now() / 86400000);
+const INTERVALS = [0, 1, 3, 7, 14, 30];
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function shuffle(a){ a = a.slice(); for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+
+/* ---------- spraak ---------- */
+let VOICE = null;
+function pickVoice(){
+  if (!('speechSynthesis' in window)) return null;
+  const vs = speechSynthesis.getVoices(), want = SETTINGS.accent === 'us' ? /en[-_]US/i : /en[-_]GB/i;
+  const pool = vs.filter(v => want.test(v.lang)), any = vs.filter(v => /^en/i.test(v.lang));
+  VOICE = pool.find(v => /premium/i.test(v.name)) || pool.find(v => /enhanced|verbeterd/i.test(v.name)) || pool.find(v => /daniel|serena|kate|samantha|alex|ava|arthur|martha/i.test(v.name)) || pool[0] || any[0] || null;
+  renderVoiceNote(); return VOICE;
+}
+function speak(text, rate){
+  if (!('speechSynthesis' in window)) return;
+  try{
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = SETTINGS.accent === 'us' ? 'en-US' : 'en-GB'; if (VOICE) u.voice = VOICE;
+    u.rate = rate || SETTINGS.rate || 0.9;
+    if (speechSynthesis.speaking || speechSynthesis.pending){ speechSynthesis.cancel(); setTimeout(() => speechSynthesis.speak(u), 120); }
+    else speechSynthesis.speak(u);
+  }catch(e){}
+}
+if ('speechSynthesis' in window){ pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
+function renderVoiceNote(){
+  const el = document.getElementById('voiceNote'); if (!el) return;
+  if (!('speechSynthesis' in window)) el.innerHTML = `<div class="notice"><span>🔇</span><div><b>Deze browser kan niet voorlezen.</b>Open de app in Safari op je iPad of iPhone.</div></div>`;
+  else if (!VOICE) el.innerHTML = `<div class="notice"><span>🔊</span><div><b>Geen Engelse stem gevonden (nog).</b>Op je iPad/iPhone: Instellingen → Toegankelijkheid → Gesproken materiaal → Stemmen → Engels → download een stem, bijv. "Daniel" of "Serena". Herlaad daarna deze pagina. Werkt het geluid al? Dan kun je dit negeren.</div></div>`;
+  else el.innerHTML = '';
+}
+function voiceControls(){
+  const r = SETTINGS.rate || 0.9;
+  return `<div class="seg" role="group" aria-label="Accent"><button data-acc="gb" aria-pressed="${SETTINGS.accent !== 'us'}">🇬🇧 Brits</button><button data-acc="us" aria-pressed="${SETTINGS.accent === 'us'}">🇺🇸 Amerikaans</button></div>
+    <label class="inline">🐢 Spreektempo <input id="rate" type="range" min="0.6" max="1.1" step="0.1" value="${r}"> <span id="rateV">${r.toFixed(1)}×</span></label>`;
+}
+function bindVoice(){
+  view.querySelectorAll('[data-acc]').forEach(b => b.addEventListener('click', () => { SETTINGS.accent = b.dataset.acc; store.set('set', SETTINGS); pickVoice(); speak('Hello, how are you?'); render(); }));
+  const r = document.getElementById('rate'); if (!r) return;
+  r.addEventListener('input', () => { SETTINGS.rate = +r.value; document.getElementById('rateV').textContent = SETTINGS.rate.toFixed(1) + '×'; store.set('set', SETTINGS); });
+  r.addEventListener('change', () => speak('Hello'));
+}
+
+/* ---------- SRS + dagen ---------- */
+function mark(id, good){
+  const s = SRS[id] || {b: 0, d: today()};
+  if (good){ s.b = Math.min(5, s.b + 1); s.d = today() + INTERVALS[s.b]; } else { s.b = 0; s.d = today(); }
+  s.m = Math.max(s.m || 0, s.b); s.t = Date.now();
+  SRS[id] = s; store.set('srs', SRS); logDay(); scheduleSync();
+}
+function markSent(id){ SENT[id] = {t: Date.now()}; store.set('sent', SENT); logDay(); scheduleSync(); }
+function logDay(){ const t = today(); if (DAYS[DAYS.length - 1] !== t){ DAYS.push(t); DAYS = DAYS.slice(-400); store.set('days', DAYS); } }
+function streak(){ const set = new Set(DAYS); let t = today(); if (!set.has(t)) t--; let n = 0; while (set.has(t)){ n++; t--; } return n; }
+const bestBox = id => { const s = SRS[id]; return s ? Math.max(s.m || 0, s.b) : 0; };
+function lessonProg(L){
+  const wp = L.words.length ? L.words.reduce((a, w) => a + Math.min(bestBox(w.id), 3) / 3, 0) / L.words.length : 0;
+  const sp = L.sents.length ? L.sents.filter(s => SENT[s.id]).length / L.sents.length : 0;
+  return L.sents.length ? wp * 0.7 + sp * 0.3 : wp;
+}
+
+/* ---------- les kiezen ---------- */
+function scopeWords(scope){
+  if (scope === 'due') return ALL.filter(w => SRS[w.id] && SRS[w.id].d <= today());
+  if (scope === 'pics') return ALL.filter(w => w.e);
+  if (LEVELS.some(V => V.id === scope)) return ALL.filter(w => w.lv === scope);
+  return (LBYK[scope] || {words: []}).words;
+}
+function scopeSents(scope){
+  if (LEVELS.some(V => V.id === scope)) return SENTS.filter(s => LBYK[s.k].lv === scope);
+  return (LBYK[scope] || {sents: []}).sents;
+}
+function scopeSelect(id, val, extra){
+  let h = `<select id="${id}" aria-label="Kies les">`;
+  if (extra) h += `<option value="due" ${val==='due'?'selected':''}>⏰ Te herhalen vandaag (${ALL.filter(w=>SRS[w.id]&&SRS[w.id].d<=today()).length})</option><option value="pics" ${val==='pics'?'selected':''}>🖼 Woorden met plaatjes (${ALL.filter(w=>w.e).length})</option>`;
+  LEVELS.forEach(V => { if (!V.l.length) return;
+    h += `<optgroup label="${T('Niveau')} ${V.id}"><option value="${V.id}" ${val===V.id?'selected':''}>${T('Alles uit')} ${V.id}</option>`;
+    V.l.forEach((L, i) => { h += `<option value="${L.k}" ${val===L.k?'selected':''}>${V.id} · ${T('Les')} ${i + 1} · ${esc(ltitle(L))}</option>`; });
+    h += `</optgroup>`; });
+  return h + `</select>`;
+}
+function bindScope(id, key, reset){
+  const sel = document.getElementById(id); if (!sel) return;
+  sel.addEventListener('change', () => { SETTINGS[key] = sel.value; store.set('set', SETTINGS); reset(); render(); });
+}
+
+/* ---------- tabs ---------- */
+const view = document.getElementById('view');
+let TAB = 'leren', LESSON = null;
+const TABS = ['leren', 'flash', 'spell', 'zin', 'quiz', 'route'];
+function setTab(t){
+  TAB = t; LESSON = null;
+  document.querySelectorAll('nav.tabs button').forEach(b => b.setAttribute('aria-current', b.dataset.tab === t ? 'page' : 'false'));
+  if (location.hash.slice(1) !== t) history.replaceState(null, '', '#' + t);
+  render(); window.scrollTo(0, 0);
+}
+document.querySelectorAll('nav.tabs button').forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
+window.addEventListener('hashchange', () => { const t = location.hash.slice(1); if (TABS.includes(t) && t !== TAB) setTab(t); });
+function render(){
+  if (TAB === 'leren') return LESSON ? renderLesson() : renderHome();
+  if (TAB === 'flash') return renderFlash();
+  if (TAB === 'spell') return renderSpell();
+  if (TAB === 'zin') return renderZin();
+  if (TAB === 'quiz') return renderQuiz();
+  if (TAB === 'route') return renderRoute();
+}
+function goLesson(tab, k){ SETTINGS.scope = k; SETTINGS.sscope = k; SETTINGS.zscope = k; store.set('set', SETTINGS); FL = null; SP = null; ZN = null; QZ = null; setTab(tab); }
+
+/* ---------- woorden ---------- */
+function renderHome(){
+  const learned = ALL.filter(w => bestBox(w.id) >= 3).length, due = ALL.filter(w => SRS[w.id] && SRS[w.id].d <= today()).length;
+  let h = `<div class="stats">
+    <div class="card stat"><div class="n">${learned}</div><div class="l">woorden geleerd</div></div>
+    <div class="card stat"><div class="n">${Object.keys(SENT).length}</div><div class="l">zinnen gebouwd</div></div>
+    <div class="card stat"><div class="n">${due}</div><div class="l">vandaag te herhalen</div></div>
+    <div class="card stat"><div class="n">${ALL.length}</div><div class="l">woorden in totaal</div></div></div>`;
+  if (due) h += `<div style="margin-top:12px"><button class="primary" id="goDue">⏰ Herhaal nu ${due} woorden</button></div>`;
+  h += `<h2>Kies een les</h2><p class="muted" style="margin-top:-4px">Tik op een les om alle woorden en zinnen te zien en te horen.</p>`;
+  const open = store.get('open', 'A1');
+  LEVELS.forEach(V => {
+    if (!V.l.length){ h += `<div class="book soon"><div class="card lvl" style="padding:12px 14px"><span class="badge" style="background:${V.c}">${V.id}</span><b>${T('Niveau')} ${V.id}</b><span class="chip" style="margin-left:auto">binnenkort</span></div></div>`; return; }
+    h += `<details class="book" data-v="${V.id}" ${open === V.id ? 'open' : ''}><summary><span class="bookno" style="background:${V.c};width:auto;padding:0 8px">${V.id}</span>${T('Niveau')} ${V.id}<span class="chip" style="margin-left:auto">${V.l.reduce((a, L) => a + L.w.length, 0)}</span></summary><div class="lessons">`;
+    V.l.forEach((L, i) => {
+      h += `<button class="lesson" data-k="${L.k}"><span class="dot" style="background:${L.c}"></span><span class="info"><span class="nm">${T('Les')} ${i + 1} · ${esc(ltitle(L))}</span><span class="muted" style="display:block;font-size:.85rem"><span class="notr">${esc(L.t.en)}</span> · ${L.words.length} ${T('woorden')}</span><span class="bar"><i style="width:${Math.round(lessonProg(L) * 100)}%"></i></span></span></button>`;
+    });
+    h += `</div></details>`;
+  });
+  view.innerHTML = h;
+  view.querySelectorAll('.lesson').forEach(b => b.addEventListener('click', () => { LESSON = b.dataset.k; render(); window.scrollTo(0, 0); }));
+  view.querySelectorAll('details.book').forEach(d => d.addEventListener('toggle', () => { if (d.open) store.set('open', d.dataset.v); }));
+  const g = document.getElementById('goDue'); if (g) g.addEventListener('click', () => { SETTINGS.scope = 'due'; store.set('set', SETTINGS); FL = null; setTab('flash'); });
+}
+function renderLesson(){
+  const L = LBYK[LESSON], V = LEVELS.find(x => x.id === L.lv), idx = V.l.indexOf(L) + 1;
+  let h = `<div class="row"><button class="ghost" id="back">← Terug</button><span class="chip" style="background:${V.c};color:#fff">${T('Niveau')} ${V.id}</span></div>
+    <h2>${T('Les')} ${idx} · ${esc(ltitle(L))} <span class="muted notr" style="font-size:1rem">${esc(L.t.en)}</span></h2>
+    <div class="row" style="margin-bottom:12px"><button class="primary" data-go="flash">🃏 Flashcards</button><button data-go="spell">✍️ Spelling</button><button data-go="zin">🧩 Zinnen bouwen</button><button data-go="quiz">❓ Quiz</button></div>
+    <div class="row" style="margin-bottom:12px">${voiceControls()}</div><div class="words">`;
+  L.words.forEach(w => {
+    const b = bestBox(w.id);
+    h += `<button class="word" data-id="${w.id}" aria-label="🔊 ${esc(w.en)}">${w.e ? `<span style="font-size:1.6rem;flex:none">${w.e}</span>` : ''}<span class="meta"><span class="en notr" style="display:block">${esc(w.en)}</span><span class="nl notr">${esc(mean(w))}</span></span><span class="box">${b ? '★'.repeat(Math.min(b, 5)) : '🔊'}</span></button>`;
+  });
+  h += `</div>`;
+  if (L.sents.length){
+    h += `<h2>Voorbeeldzinnen</h2>`;
+    L.sents.forEach(s => { h += `<button class="sentence" data-s="${s.id}"><span>🔊</span><span><span class="en notr" style="display:block">${esc(s.en)}</span><span class="muted notr">${esc(mean(s))}</span></span>${SENT[s.id] ? '<span style="margin-left:auto;color:var(--ok);font-weight:800">✓</span>' : ''}</button>`; });
+  }
+  view.innerHTML = h; bindVoice();
+  document.getElementById('back').addEventListener('click', () => { LESSON = null; render(); });
+  view.querySelectorAll('.word').forEach(el => el.addEventListener('click', () => speak(ALL.find(x => x.id === el.dataset.id).en)));
+  view.querySelectorAll('.sentence').forEach(el => el.addEventListener('click', () => speak(SENTS.find(x => x.id === el.dataset.s).en)));
+  view.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => goLesson(b.dataset.go, LESSON)));
+}
+
+/* ---------- flashcards ---------- */
+let FL = null;
+function buildDeck(scope, mode, level){
+  let ws = scopeWords(scope); if (mode === 'pic') ws = ws.filter(w => w.e);
+  const due = shuffle(ws.filter(w => SRS[w.id] && SRS[w.id].d <= today())), fresh = ws.filter(w => !SRS[w.id]), rest = ws.filter(w => SRS[w.id] && SRS[w.id].d > today());
+  let deck;
+  if (level === 'begin'){ const nw = fresh.slice(0, 5), dw = due.slice(0, 10); deck = nw.map(w => ({w, learn: true})).concat(shuffle(nw.concat(dw)).map(w => ({w}))); }
+  else deck = due.concat(fresh.slice(0, 20)).slice(0, 30).map(w => ({w}));
+  if (!deck.length) deck = shuffle(rest).slice(0, level === 'begin' ? 10 : 20).map(w => ({w}));
+  return {deck, i: 0, flipped: false, good: 0, bad: 0, scope, mode, level, hint: false};
+}
+function renderFlash(){
+  const scope = SETTINGS.scope || 'A1-1', mode = SETTINGS.fmode || 'en', level = SETTINGS.flevel || 'begin';
+  if (!FL || FL.scope !== scope || FL.mode !== mode || FL.level !== level) FL = buildDeck(scope, mode, level);
+  let h = `<h2>Flashcards</h2><div class="card"><div class="row">${scopeSelect('scope', scope, true)}
+    <div class="seg" role="group" aria-label="Voorkant"><button data-m="en" aria-pressed="${mode==='en'}">EN → NL</button><button data-m="nl" aria-pressed="${mode==='nl'}">NL → EN</button><button data-m="pic" aria-pressed="${mode==='pic'}">🖼 Plaatje → EN</button><button data-m="ear" aria-pressed="${mode==='ear'}">👂 Luisteren</button></div></div>
+    <div class="row" style="margin-top:10px"><span class="muted" style="font-weight:700;font-size:.9rem">Niveau:</span><div class="seg" role="group" aria-label="Niveau"><button data-fl="begin" aria-pressed="${level==='begin'}">🌱 Beginner</button><button data-fl="normaal" aria-pressed="${level==='normaal'}">🔥 Gevorderd</button></div>${voiceControls()}</div>
+    <p class="muted" style="margin:.5em 0 0;font-size:.85rem">${level === 'begin' ? 'Beginner: maximaal 5 nieuwe woorden per ronde. Elk nieuw woord krijg je eerst te zien en te horen, daarna word je overhoord.' : 'Gevorderd: grotere rondes, zonder uitlegkaart vooraf.'}</p></div>`;
+  const bindCtl = () => { bindVoice(); bindScope('scope', 'scope', () => FL = null);
+    view.querySelectorAll('[data-m]').forEach(b => b.addEventListener('click', () => { SETTINGS.fmode = b.dataset.m; store.set('set', SETTINGS); FL = null; render(); }));
+    view.querySelectorAll('[data-fl]').forEach(b => b.addEventListener('click', () => { SETTINGS.flevel = b.dataset.fl; store.set('set', SETTINGS); FL = null; render(); })); };
+  if (!FL.deck.length){ view.innerHTML = h + `<div class="card" style="margin-top:12px;text-align:center"><p class="score">Niets te herhalen 🎉</p><p class="muted">Kies een les in de lijst hierboven om nieuwe woorden te leren.</p></div>`; bindCtl(); return; }
+  if (FL.i >= FL.deck.length){
+    view.innerHTML = h + `<div class="card" style="margin-top:12px;text-align:center"><p class="score">Klaar! ✅ ${FL.good} goed · ❌ ${FL.bad} nog oefenen</p><p class="muted">Woorden die je wist komen pas na een paar dagen terug. Woorden die je nog niet wist, zie je de volgende keer eerst.</p><button class="primary" id="again">Volgende ronde</button></div>`;
+    bindCtl(); document.getElementById('again').addEventListener('click', () => { FL = buildDeck(scope, mode, level); render(); }); return;
+  }
+  const card = FL.deck[FL.i], w = card.w;
+  const pic = w.e ? `<div style="font-size:${mode === 'pic' ? 'clamp(4rem,18vw,7rem)' : '2.6rem'};line-height:1.1">${w.e}</div>` : '';
+  const full = `${pic}<div class="big notr">${esc(w.en)}</div><div class="nlbig notr" style="font-size:1.4rem">${esc(mean(w))}</div>`;
+  if (card.learn){
+    const ls = FL.deck.filter(x => x.learn);
+    h += `<div class="prog"><span>✨ Nieuw woord</span><span>${ls.indexOf(card) + 1} van ${ls.length}</span></div>
+      <div class="card flash" style="cursor:default">${full}<div class="hint">Kijk, luister en zeg het 3× hardop na.</div></div>
+      <div class="row" style="justify-content:center;margin-top:10px"><button id="say">🔊 Luister</button><button id="slow">🐢 Langzaam</button></div>
+      <div style="margin-top:12px"><button class="primary" id="seen" style="width:100%">Ik heb het geleerd →</button></div>`;
+    view.innerHTML = h; bindCtl();
+    document.getElementById('say').addEventListener('click', () => speak(w.en));
+    document.getElementById('slow').addEventListener('click', () => speak(w.en, 0.6));
+    if (!FL.spoke){ FL.spoke = true; setTimeout(() => speak(w.en), 250); }
+    document.getElementById('seen').addEventListener('click', () => { FL.i++; FL.spoke = false; render(); });
+    return;
+  }
+  const tests = FL.deck.filter(x => !x.learn), ti = FL.deck.slice(0, FL.i).filter(x => !x.learn).length + 1;
+  let front;
+  if (mode === 'en') front = `<div class="big notr">${esc(w.en)}</div>`;
+  else if (mode === 'nl') front = `<div class="nlbig notr">${esc(mean(w))}</div>${FL.hint ? `<div class="muted notr" style="font-size:1.3rem">${esc(w.en[0])}…</div>` : ''}`;
+  else if (mode === 'pic') front = `${pic}${FL.hint ? `<div class="muted notr">${esc(mean(w))}</div>` : ''}<div class="hint">Hoe heet dit in het Engels? Zeg het hardop!</div>`;
+  else front = `<div style="font-size:4rem">👂</div>${FL.hint ? `<div class="muted notr" style="font-size:1.3rem">${esc(w.en[0])}…</div>` : ''}<div class="hint">Luister… welk woord is dit?</div>`;
+  h += `<div class="prog"><span>Vraag ${ti} van ${tests.length}</span><span>${'★'.repeat(Math.min(bestBox(w.id), 5))}</span></div>
+    <div class="card flash" id="card" role="button" tabindex="0" aria-label="Draai de kaart om">${FL.flipped ? full : front}${FL.flipped ? '' : '<div class="hint">Tik om om te draaien</div>'}</div>
+    <div class="row" style="justify-content:center;margin-top:10px"><button id="say">🔊 Luister</button><button id="slow">🐢 Langzaam</button>${!FL.flipped && !FL.hint && mode !== 'en' ? '<button id="hintb">💡 Hint</button>' : ''}</div>
+    ${FL.flipped ? `<div class="answer-row"><button class="bad" id="no">Nog niet</button><button class="ok" id="yes">Weet ik!</button></div>` : ''}`;
+  view.innerHTML = h; bindCtl();
+  const flip = () => { if (!FL.flipped){ FL.flipped = true; render(); speak(w.en); } };
+  const cel = document.getElementById('card'); cel.addEventListener('click', flip); cel.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); flip(); } });
+  document.getElementById('say').addEventListener('click', () => speak(w.en));
+  document.getElementById('slow').addEventListener('click', () => speak(w.en, 0.6));
+  const hb = document.getElementById('hintb'); if (hb) hb.addEventListener('click', () => { FL.hint = true; render(); });
+  if ((mode === 'ear' || mode === 'en') && !FL.flipped && !FL.spoke){ FL.spoke = true; setTimeout(() => speak(w.en), 250); }
+  if (FL.flipped){
+    const nx = () => { FL.i++; FL.flipped = false; FL.spoke = false; FL.hint = false; render(); };
+    document.getElementById('yes').addEventListener('click', () => { mark(w.id, !FL.hint || FL.level === 'begin'); FL.good++; nx(); });
+    document.getElementById('no').addEventListener('click', () => { mark(w.id, false); FL.bad++; FL.deck.push({w}); nx(); });
+  }
+}
+
+/* ---------- spelling ---------- */
+const norm = s => s.toLowerCase().replace(/[’‘`´]/g, "'").replace(/[.!?,]/g, '').replace(/\s+/g, ' ').trim().replace(/^to /, '');
+function diffHTML(target, typed){
+  let out = ''; const a = target, b = typed.toLowerCase();
+  for (let i = 0; i < a.length; i++){ const ok = b[i] !== undefined && b[i] === a[i].toLowerCase(); out += `<span class="${ok ? 'ok' : 'no'}">${esc(a[i] === ' ' ? ' ' : a[i])}</span>`; }
+  return out;
+}
+let SP = null;
+function buildSpell(scope){
+  const ws = scopeWords(scope).filter(w => /^[A-Za-z' -]+$/.test(w.en));
+  const due = ws.filter(w => SRS[w.id] && SRS[w.id].d <= today()), weak = ws.filter(w => bestBox(w.id) < 3 && !due.includes(w));
+  let list = shuffle(due).concat(weak).slice(0, 10); if (list.length < 10) list = list.concat(shuffle(ws.filter(w => !list.includes(w)))).slice(0, 10);
+  return {scope, list, i: 0, tries: 0, hint: 0, state: 'ask', typed: '', good: 0};
+}
+function spellBox(w, st, onDone){
+  // gedeeld door Spelling-tab en quiz-etappe 4
+  let h = `<div class="card flash" style="min-height:220px;cursor:default">${w.e ? `<div style="font-size:3rem">${w.e}</div>` : ''}<div class="nlbig notr">${esc(mean(w))}</div>
+    <div class="row" style="justify-content:center"><button id="spsay" class="primary">🔊 Luister</button><button id="spslow">🐢 Langzaam</button></div></div>
+    <div style="margin-top:12px"><input id="spin" class="spellin" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="Typ het Engelse woord" value="${esc(st.typed)}" ${st.state !== 'ask' ? 'disabled' : ''}></div>`;
+  if (st.state === 'ask'){
+    h += `<div class="row" style="margin-top:10px;justify-content:center"><button class="primary" id="spcheck">Controleer</button><button id="sphint">💡 Hint: volgende letter</button></div>`;
+    if (st.tries) h += `<div class="feedback bad">Bijna! Kijk naar de rode letters en probeer opnieuw.</div><div class="diff notr" style="text-align:center">${diffHTML(w.en, st.last || '')}</div>`;
+  } else {
+    h += `<div class="feedback ${st.state === 'good' ? 'good' : 'bad'}">${st.state === 'good' ? 'Goed gespeld! 👍' : 'Zo schrijf je het:'}</div><div class="diff notr" style="text-align:center"><span class="ok">${esc(w.en)}</span></div>
+      <div style="margin-top:12px;text-align:center"><button class="primary" id="spnext">Volgende →</button></div>`;
+  }
+  return h;
+}
+function bindSpellBox(w, st, rerender, finish){
+  const inp = document.getElementById('spin');
+  document.getElementById('spsay').addEventListener('click', () => speak(w.en));
+  document.getElementById('spslow').addEventListener('click', () => speak(w.en, 0.6));
+  if (!st.spoke){ st.spoke = true; setTimeout(() => speak(w.en), 250); }
+  if (st.state === 'ask'){
+    setTimeout(() => { try{ inp.focus(); }catch(e){} }, 50);
+    inp.addEventListener('input', () => { st.typed = inp.value; });
+    const check = () => {
+      st.typed = inp.value; if (!st.typed.trim()) return;
+      if (norm(st.typed) === norm(w.en)){ st.state = 'good'; mark(w.id, st.hint === 0 && st.tries === 0); speak(w.en); }
+      else { st.tries++; st.last = st.typed; if (st.tries >= 3){ st.state = 'bad'; mark(w.id, false); speak(w.en); } }
+      rerender();
+    };
+    document.getElementById('spcheck').addEventListener('click', check);
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); check(); } });
+    document.getElementById('sphint').addEventListener('click', () => {
+      let n = 0; const t = st.typed.toLowerCase(); while (n < w.en.length && t[n] === w.en[n].toLowerCase()) n++;
+      st.typed = w.en.slice(0, n + 1); st.hint++; rerender();
+    });
+  } else document.getElementById('spnext').addEventListener('click', finish);
+}
+function renderSpell(){
+  const scope = SETTINGS.sscope || 'A1-1';
+  if (!SP || SP.scope !== scope) SP = buildSpell(scope);
+  let h = `<h2>Spelling</h2><div class="card"><div class="row">${scopeSelect('sscope', scope, false)}</div><div class="row" style="margin-top:10px">${voiceControls()}</div>
+    <p class="muted" style="margin:.5em 0 0;font-size:.85rem">Luister naar het woord en typ het in het Engels. Je ziet de betekenis als hulp. Hoofdletters maken niet uit.</p></div>`;
+  const bindCtl = () => { bindVoice(); bindScope('sscope', 'sscope', () => SP = null); };
+  if (!SP.list.length){ view.innerHTML = h + `<p class="muted">Geen woorden in deze les.</p>`; bindCtl(); return; }
+  if (SP.i >= SP.list.length){
+    view.innerHTML = h + `<div class="card" style="margin-top:12px;text-align:center"><p class="score">Klaar! ${SP.good} / ${SP.list.length} in één keer goed</p><button class="primary" id="spagain">Volgende ronde</button></div>`;
+    bindCtl(); document.getElementById('spagain').addEventListener('click', () => { SP = buildSpell(scope); render(); }); return;
+  }
+  const w = SP.list[SP.i];
+  h += `<div class="prog"><span>Woord ${SP.i + 1} van ${SP.list.length}</span><span>✅ ${SP.good}</span></div>` + spellBox(w, SP);
+  view.innerHTML = h; bindCtl();
+  bindSpellBox(w, SP, render, () => { if (SP.state === 'good' && SP.tries === 0 && SP.hint === 0) SP.good++; Object.assign(SP, {i: SP.i + 1, tries: 0, hint: 0, state: 'ask', typed: '', last: '', spoke: false}); render(); });
+}
+
+/* ---------- zinnen bouwen ---------- */
+const PROPER = new Set(['I']);
+SENTS.forEach(s => s.en.split(' ').slice(1).forEach(t => { const c = t.replace(/[^A-Za-z']/g, ''); if (/^[A-Z]/.test(c)) PROPER.add(c); }));
+function tokens(en){
+  const m = en.match(/^(.*?)([.?!]*)$/); const words = m[1].split(' ');
+  const first = words[0].replace(/[^A-Za-z']/g, '');
+  if (!PROPER.has(first)) words[0] = words[0][0].toLowerCase() + words[0].slice(1);
+  return {words, end: m[2]};
+}
+let ZN = null;
+function buildZin(scope){
+  const ss = scopeSents(scope);
+  const list = ss.filter(s => !SENT[s.id]).concat(shuffle(ss.filter(s => SENT[s.id]))).slice(0, 8);
+  return {scope, list, i: 0};
+}
+function setupZin(){ const s = ZN.list[ZN.i], tk = tokens(s.en); let pool = shuffle(tk.words.map((t, i) => ({t, i}))); if (pool.length > 1 && pool.every((p, k) => p.i === k)) pool = pool.reverse(); Object.assign(ZN, {tk, pool, ans: [], state: 'ask', bad: -1, hints: 0, errs: 0}); }
+function renderZin(){
+  const scope = SETTINGS.zscope || 'A1-1';
+  if (!ZN || ZN.scope !== scope){ ZN = buildZin(scope); if (ZN.list.length) setupZin(); }
+  let h = `<h2>Zinnen bouwen</h2><div class="card"><div class="row">${scopeSelect('zscope', scope, false)}</div><div class="row" style="margin-top:10px">${voiceControls()}</div>
+    <p class="muted" style="margin:.5em 0 0;font-size:.85rem">Tik de Engelse woorden in de goede volgorde. Tik op een woord in je zin om het terug te zetten.</p></div>`;
+  const bindCtl = () => { bindVoice(); bindScope('zscope', 'zscope', () => ZN = null); };
+  if (!ZN.list.length){ view.innerHTML = h + `<p class="muted">Geen zinnen in deze les.</p>`; bindCtl(); return; }
+  if (ZN.i >= ZN.list.length){
+    view.innerHTML = h + `<div class="card" style="margin-top:12px;text-align:center"><p class="score">Klaar! 🎉 Alle zinnen van deze ronde gebouwd.</p><button class="primary" id="zagain">Volgende ronde</button></div>`;
+    bindCtl(); document.getElementById('zagain').addEventListener('click', () => { ZN = buildZin(scope); if (ZN.list.length) setupZin(); render(); }); return;
+  }
+  const s = ZN.list[ZN.i], solved = ZN.state === 'good';
+  h += `<div class="prog"><span>Zin ${ZN.i + 1} van ${ZN.list.length}</span><span>${SENT[s.id] ? '✓' : ''}</span></div>
+    <div class="card" style="text-align:center"><div class="nlbig notr" style="font-family:var(--display);font-size:1.35rem;font-weight:600">${esc(mean(s))}</div>
+    <div class="tiles answer ${solved ? 'solved' : ''}" id="ans">${ZN.ans.map((p, k) => `<button class="tile notr ${k === ZN.bad ? 'badpos' : ''}" data-a="${k}" ${solved ? 'disabled' : ''}>${esc(p.t)}</button>`).join('')}${ZN.ans.length === ZN.tk.words.length ? `<span class="tile notr" style="border:0;box-shadow:none;background:none">${esc(ZN.tk.end)}</span>` : ''}</div>
+    <div class="tiles" id="pool">${ZN.pool.map((p, k) => `<button class="tile notr ${ZN.ans.includes(p) ? 'used' : ''}" data-p="${k}" ${solved ? 'disabled' : ''}>${esc(p.t)}</button>`).join('')}</div>
+    ${ZN.state === 'wrong' ? `<div class="feedback bad">Nog niet helemaal. Het rode woord staat niet goed.</div>` : ''}
+    ${solved ? `<div class="feedback good">Goed zo! 🎉</div><div class="en notr" style="font-size:1.2rem">${esc(s.en)}</div>` : ''}
+    <div class="row" style="justify-content:center;margin-top:10px">${solved ? `<button id="zsay">🔊 Luister</button><button class="primary" id="znext">Volgende →</button>` : `<button id="zhint">💡 Hint</button><button id="zlisten">🔊 Luister naar de zin</button><button id="zreset">↺ Opnieuw</button>`}</div></div>`;
+  view.innerHTML = h; bindCtl();
+  const done = () => {
+    if (ZN.ans.length !== ZN.tk.words.length) return;
+    const bad = ZN.ans.findIndex((p, k) => p.t !== ZN.tk.words[k]);
+    if (bad < 0){ ZN.state = 'good'; ZN.bad = -1; markSent(s.id); speak(s.en); }
+    else { ZN.state = 'wrong'; ZN.bad = bad; ZN.errs++; }
+  };
+  view.querySelectorAll('[data-p]').forEach(b => b.addEventListener('click', () => { const p = ZN.pool[+b.dataset.p]; if (ZN.ans.includes(p)) return; ZN.ans.push(p); ZN.state = 'ask'; ZN.bad = -1; done(); render(); }));
+  view.querySelectorAll('[data-a]').forEach(b => b.addEventListener('click', () => { ZN.ans.splice(+b.dataset.a, 1); ZN.state = 'ask'; ZN.bad = -1; render(); }));
+  const g = id => document.getElementById(id);
+  if (g('zhint')) g('zhint').addEventListener('click', () => {
+    let k = 0; while (k < ZN.ans.length && ZN.ans[k].t === ZN.tk.words[k]) k++;
+    ZN.ans = ZN.ans.slice(0, k); const want = ZN.tk.words[k]; const p = ZN.pool.find(p => p.t === want && !ZN.ans.includes(p));
+    if (p) ZN.ans.push(p); ZN.hints++; ZN.state = 'ask'; ZN.bad = -1; done(); render();
+  });
+  if (g('zlisten')) g('zlisten').addEventListener('click', () => speak(s.en));
+  if (g('zreset')) g('zreset').addEventListener('click', () => { ZN.ans = []; ZN.state = 'ask'; ZN.bad = -1; render(); });
+  if (g('zsay')) g('zsay').addEventListener('click', () => speak(s.en));
+  if (g('znext')) g('znext').addEventListener('click', () => { ZN.i++; if (ZN.i < ZN.list.length) setupZin(); render(); });
+}
+
+/* ---------- quiz ---------- */
+let QZ = null;
+const PATH = ['meaning', 'ear', 'reverse', 'spell'];
+const PATHNAME = {meaning: 'Wat betekent het?', ear: 'Wat hoor je?', reverse: 'Hoe zeg je het in het Engels?', spell: 'Schrijf het woord'};
+const QMODES = {meaning: 'EN → betekenis', ear: '👂 Hoor → woord', reverse: 'Betekenis → EN', spell: '✍️ Typ het woord'};
+function newQuiz(scope, kind, mode){
+  const pool = []; const seen = new Set(); scopeWords(scope).forEach(w => { if (!seen.has(w.en)){ seen.add(w.en); pool.push(w); } });
+  if (kind === 'path'){
+    const prev = QZ && QZ.scope === scope && QZ.set ? QZ.set.map(w => w.id) : [];
+    let set = pool.filter(w => bestBox(w.id) < 3 && !prev.includes(w.id)).slice(0, 5);
+    if (set.length < 4) set = shuffle(pool).slice(0, 5);
+    return {kind, scope, set, pool, stage: 0, qs: shuffle(set), i: 0, score: 0, picked: null, stageScore: []};
+  }
+  return {kind, scope, mode, pool, qs: shuffle(pool).slice(0, 10), i: 0, score: 0, picked: null};
+}
+function renderQuiz(){
+  const scope = SETTINGS.scope && !['due', 'pics'].includes(SETTINGS.scope) ? SETTINGS.scope : 'A1-1';
+  const kind = SETTINGS.qkind || 'path', fmode = SETTINGS.qmode || 'meaning';
+  if (!QZ || QZ.scope !== scope || QZ.kind !== kind || (kind === 'free' && QZ.mode !== fmode)) QZ = newQuiz(scope, kind, fmode);
+  const mode = kind === 'path' ? PATH[QZ.stage] : fmode;
+  let h = `<h2>Quiz</h2><div class="card"><div class="row">${scopeSelect('qscope', scope, false)}
+    <div class="seg" role="group" aria-label="Soort quiz"><button data-qk="path" aria-pressed="${kind==='path'}">🪜 Stap voor stap</button><button data-qk="free" aria-pressed="${kind==='free'}">🎲 Vrije quiz</button></div></div>
+    ${kind === 'free' ? `<div class="seg" role="group" aria-label="Vraagsoort" style="margin-top:10px">${Object.entries(QMODES).map(([k, v]) => `<button data-q="${k}" aria-pressed="${fmode===k}">${v}</button>`).join('')}</div>`
+      : `<p class="muted" style="margin:.6em 0 0;font-size:.88rem">Stap voor stap: je oefent steeds dezelfde 5 woorden in 4 etappes, van makkelijk naar moeilijk. Daarna volgen de volgende 5 woorden.</p>`}
+    <div class="row" style="margin-top:10px">${voiceControls()}</div></div>`;
+  const bindCtl = () => { bindVoice(); bindScope('qscope', 'scope', () => QZ = null);
+    view.querySelectorAll('[data-qk]').forEach(b => b.addEventListener('click', () => { SETTINGS.qkind = b.dataset.qk; store.set('set', SETTINGS); QZ = null; render(); }));
+    view.querySelectorAll('[data-q]').forEach(b => b.addEventListener('click', () => { SETTINGS.qmode = b.dataset.q; store.set('set', SETTINGS); QZ = null; render(); })); };
+  if ((kind === 'path' ? QZ.set.length : QZ.qs.length) < 4){ view.innerHTML = h + `<p class="muted">Deze les heeft te weinig woorden voor een quiz. Kies een andere les.</p>`; bindCtl(); return; }
+  if (kind === 'path') h += `<div class="card" style="margin-top:12px"><div class="row" style="justify-content:space-between"><b>Deze 5 woorden:</b><span class="notr">${QZ.set.map(x => `<span class="en" style="margin-left:8px">${esc(x.en)}</span>`).join(' ·')}</span></div>
+      <div class="row" style="margin-top:10px;gap:6px">${PATH.map((m, k) => `<span class="chip" style="${k === QZ.stage ? 'background:var(--red);color:#fff' : k < QZ.stage ? 'background:var(--ok-soft);color:var(--ok)' : ''}">${k < QZ.stage ? '✓' : k + 1}. ${T(PATHNAME[m])}</span>`).join('')}</div></div>`;
+  if (QZ.i >= QZ.qs.length){
+    if (kind === 'path' && QZ.stage < PATH.length - 1){
+      h += `<div class="card" style="margin-top:12px;text-align:center"><p class="score">Etappe ${QZ.stage + 1} klaar: ${QZ.score} / ${QZ.qs.length} goed</p>
+        <p><span>Volgende etappe:</span> <b>${T(PATHNAME[PATH[QZ.stage + 1]])}</b></p>
+        <div class="row" style="justify-content:center"><button id="qredo">↺ Deze etappe opnieuw</button><button class="primary" id="qnext">Door naar etappe ${QZ.stage + 2} →</button></div></div>`;
+      view.innerHTML = h; bindCtl();
+      const reset = () => Object.assign(QZ, {qs: shuffle(QZ.set), i: 0, score: 0, picked: null, opts: null, spoke: false, sp: null});
+      document.getElementById('qnext').addEventListener('click', () => { QZ.stageScore.push(QZ.score); QZ.stage++; reset(); render(); });
+      document.getElementById('qredo').addEventListener('click', () => { reset(); render(); });
+      return;
+    }
+    const tot = kind === 'path' ? QZ.stageScore.reduce((a, x) => a + x, 0) + QZ.score : QZ.score, max = kind === 'path' ? QZ.set.length * PATH.length : QZ.qs.length;
+    const pct = Math.round(tot / max * 100);
+    h += `<div class="card" style="margin-top:12px;text-align:center"><p class="score">${tot} / ${max} goed</p><p>${pct >= 90 ? 'Fantastisch! 🌟' : pct >= 70 ? 'Heel goed! 👍' : pct >= 50 ? 'Niet slecht, nog even oefenen.' : 'Doe deze woorden nog een keer. 💪'}</p>
+      <div class="row" style="justify-content:center">${kind === 'path' ? `<button id="qsame">↺ Dezelfde 5 woorden</button><button class="primary" id="qagain">Volgende 5 woorden →</button>` : `<button class="primary" id="qagain">Nieuwe quiz</button>`}</div></div>`;
+    view.innerHTML = h; bindCtl();
+    document.getElementById('qagain').addEventListener('click', () => { QZ = newQuiz(scope, kind, fmode); render(); });
+    const qs = document.getElementById('qsame'); if (qs) qs.addEventListener('click', () => { Object.assign(QZ, {stage: 0, qs: shuffle(QZ.set), i: 0, score: 0, picked: null, opts: null, spoke: false, stageScore: [], sp: null}); render(); });
+    return;
+  }
+  const w = QZ.qs[QZ.i];
+  const head = `<div class="prog"><span>${kind === 'path' ? `${T('Etappe')} ${QZ.stage + 1} · ` : ''}${T('Vraag')} ${QZ.i + 1} ${T('van')} ${QZ.qs.length}</span><span>Score ${QZ.score}</span></div>`;
+  if (mode === 'spell'){
+    if (!QZ.sp) QZ.sp = {tries: 0, hint: 0, state: 'ask', typed: ''};
+    view.innerHTML = h + head + spellBox(w, QZ.sp); bindCtl();
+    bindSpellBox(w, QZ.sp, render, () => { if (QZ.sp.state === 'good') QZ.score++; QZ.i++; QZ.sp = null; render(); });
+    return;
+  }
+  if (!QZ.opts){ const others = shuffle(QZ.pool.filter(x => x.en !== w.en && mean(x) !== mean(w))).slice(0, 3); QZ.opts = shuffle([w].concat(others)); }
+  let q, lab, enOpt = false;
+  if (mode === 'meaning'){ q = `<div class="big notr">${esc(w.en)}</div><button id="qsay">🔊 Luister</button>`; lab = o => esc(mean(o)); }
+  else if (mode === 'ear'){ q = `<div style="font-size:3rem">👂</div><button id="qsay" class="primary">🔊 Speel af</button>`; lab = o => esc(o.en); enOpt = true; }
+  else { q = `${w.e ? `<div style="font-size:2.6rem">${w.e}</div>` : ''}<div class="nlbig notr">${esc(mean(w))}</div>`; lab = o => esc(o.en); enOpt = true; }
+  h += head + `<div class="card flash" style="min-height:180px;cursor:default">${q}</div>
+    <div class="opts">${QZ.opts.map((o, k) => { let cls = 'opt notr' + (enOpt ? ' en' : ''); if (QZ.picked !== null){ if (o === w) cls += ' right'; else if (k === QZ.picked) cls += ' wrong'; }
+      return `<button class="${cls}" data-k="${k}" ${QZ.picked !== null ? 'disabled' : ''}>${lab(o)}</button>`; }).join('')}</div>`;
+  if (QZ.picked !== null) h += `<div class="card" style="margin-top:12px;display:flex;gap:14px;align-items:center;flex-wrap:wrap"><span class="en notr" style="font-size:1.6rem">${esc(w.en)}</span><span class="notr">${esc(mean(w))}</span><button style="margin-left:auto" id="qs2">🔊</button><button class="primary" id="next">Volgende →</button></div>`;
+  view.innerHTML = h; bindCtl();
+  const qsay = document.getElementById('qsay'); if (qsay) qsay.addEventListener('click', () => speak(w.en));
+  if ((mode === 'ear' || mode === 'meaning') && QZ.picked === null && !QZ.spoke){ QZ.spoke = true; setTimeout(() => speak(w.en), 250); }
+  view.querySelectorAll('.opt').forEach(b => b.addEventListener('click', () => { const k = +b.dataset.k; QZ.picked = k; const good = QZ.opts[k] === w; if (good) QZ.score++; mark(w.id, good); render(); speak(w.en); }));
+  const nx = document.getElementById('next');
+  if (nx){ nx.addEventListener('click', () => { QZ.i++; QZ.picked = null; QZ.opts = null; QZ.spoke = false; render(); }); document.getElementById('qs2').addEventListener('click', () => speak(w.en)); }
+}
+
+/* ---------- leerroute ---------- */
+let ROUTESEL = null;
+function ring(p, col, label, size){
+  const r = size / 2 - 7, C = 2 * Math.PI * r, done = p >= 0.999;
+  return `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" aria-hidden="true"><circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="var(--line)" stroke-width="7"/>
+    <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${done ? 'var(--gold)' : col}" stroke-width="7" stroke-linecap="round" opacity="${p > 0.005 ? 1 : 0}" stroke-dasharray="${(C * p).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 ${size/2} ${size/2})"/>
+    <circle cx="${size/2}" cy="${size/2}" r="${r - 8}" fill="${done ? 'var(--gold)' : p > 0 ? col : 'var(--surface2)'}"/>
+    <text x="50%" y="50%" dy=".35em" text-anchor="middle" font-family="var(--display)" font-weight="700" font-size="${size * .26}" fill="${p > 0 || done ? '#fff' : 'var(--muted)'}">${done ? '✓' : label}</text></svg>`;
+}
+function renderRoute(){
+  const items = LESSONS.map(L => ({L, p: lessonProg(L)}));
+  const cur = items.find(x => x.p < 0.999) || items[items.length - 1];
+  if (ROUTESEL === null) ROUTESEL = cur.L.k;
+  const st = streak(), todayDone = DAYS[DAYS.length - 1] === today();
+  const totalP = items.reduce((a, x) => a + x.p, 0) / items.length;
+  let h = `<h2>Mijn leerroute</h2><div class="card"><div class="stats">
+      <div class="stat"><div class="n">🔥 ${st}</div><div class="l">${st === 1 ? 'dag' : 'dagen'} op rij${todayDone ? ' · vandaag ✓' : ' · oefen vandaag!'}</div></div>
+      <div class="stat"><div class="n">${items.filter(x => x.p >= 0.999).length}<span class="muted" style="font-size:1rem"> / ${items.length}</span></div><div class="l">lessen voltooid</div></div>
+      <div class="stat"><div class="n">${ALL.filter(w => bestBox(w.id) >= 3).length}</div><div class="l">woorden geleerd</div></div>
+      <div class="stat"><div class="n">${Object.keys(SENT).length}</div><div class="l">zinnen gebouwd</div></div></div>
+      <div class="bar" style="height:10px;margin-top:12px"><i style="width:${Math.round(totalP * 100)}%"></i></div>
+      <p class="muted" style="font-size:.85rem;margin:8px 0 0">De rondjes vullen zich vanzelf als je oefent: elk goed antwoord bij flashcards, spelling of de quiz en elke zin die je bouwt telt mee. Een woord telt als geleerd als je het op 3 verschillende momenten goed hebt.</p></div>`;
+  h += syncCard();
+  const OFF = [0, 46, 70, 46, 0, -46, -70, -46];
+  let n = 0;
+  LEVELS.forEach(V => {
+    h += `<div class="unit" style="background:${V.c}"><b>${T('Niveau')} ${V.id}</b><span>${V.l.length ? V.l.length + ' ' + T('lessen') : T('binnenkort')}</span></div>`;
+    V.l.forEach((L, i) => {
+      const x = items.find(y => y.L === L), isCur = L === cur.L, sel = L.k === ROUTESEL;
+      h += `<div class="node-row"><button class="node ${isCur ? 'cur' : ''} ${sel ? 'sel' : ''}" data-k="${L.k}" style="transform:translateX(${OFF[n++ % 8]}px)" aria-label="${esc(ltitle(L))}">${isCur ? `<span class="bubble">${x.p > 0 ? 'GA VERDER' : 'START'}</span>` : ''}${ring(x.p, L.c, i + 1, isCur ? 92 : 76)}</button></div>`;
+      if (sel){
+        const wl = L.words.filter(w => bestBox(w.id) >= 3).length, wp = L.words.reduce((a, w) => a + Math.min(bestBox(w.id), 3) / 3, 0) / (L.words.length || 1);
+        const sd = L.sents.filter(s => SENT[s.id]).length;
+        h += `<div class="card wdetail"><div class="row" style="justify-content:space-between"><b style="font-family:var(--display);font-size:1.1rem">${V.id} · ${T('Les')} ${i + 1} · ${esc(ltitle(L))}</b><span class="chip">${Math.round(x.p * 100)}% ${T('klaar')}</span></div>
+          <div class="auto"><div class="row" style="justify-content:space-between;gap:8px"><span>🃏 ${T('Woorden')} <span class="muted" style="font-size:.82rem">· ${wl}/${L.words.length} ${T('geleerd')}</span></span>${wp < 0.999 ? '<button class="small" data-go="flash">Oefen</button>' : '<span style="color:var(--ok);font-weight:700">✓</span>'}</div><div class="bar"><i style="width:${Math.round(wp * 100)}%"></i></div></div>
+          <div class="auto"><div class="row" style="justify-content:space-between;gap:8px"><span>🧩 ${T('Zinnen')} <span class="muted" style="font-size:.82rem">· ${sd}/${L.sents.length} ${T('gebouwd')}</span></span>${sd < L.sents.length ? '<button class="small" data-go="zin">Oefen</button>' : '<span style="color:var(--ok);font-weight:700">✓</span>'}</div><div class="bar"><i style="width:${Math.round(sd / (L.sents.length || 1) * 100)}%"></i></div></div>
+          <div class="row" style="margin-top:8px"><button class="small" data-go="spell">✍️ Spelling</button><button class="small" data-go="quiz">❓ Quiz</button></div></div>`;
+      }
+    });
+  });
+  h += transferCard();
+  view.innerHTML = h;
+  bindSync(); bindTransfer();
+  view.querySelectorAll('.node').forEach(b => b.addEventListener('click', () => { ROUTESEL = b.dataset.k; const sy = window.scrollY; render(); window.scrollTo(0, sy); }));
+  view.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => goLesson(b.dataset.go, ROUTESEL)));
+  if (!window.ROUTESCROLLED){ window.ROUTESCROLLED = true; const nd = view.querySelector('.node.sel'); if (nd) setTimeout(() => nd.scrollIntoView({block: 'center'}), 50); }
+}
+
+/* ---------- voortgang samenvoegen / overzetten ---------- */
+function mergeData(d){
+  let ch = false; const srs = d.srs || {};
+  Object.keys(srs).forEach(id => {
+    const r = srs[id], l = SRS[id]; if (!r || typeof r.b !== 'number') return;
+    if (!l){ SRS[id] = r; ch = true; return; }
+    const rt = r.t || 0, lt = l.t || 0, win = rt > lt ? r : lt > rt ? l : (Math.max(r.m || 0, r.b) > Math.max(l.m || 0, l.b) ? r : l), m = Math.max(r.m || 0, r.b, l.m || 0, l.b);
+    if (win !== l || (l.m || 0) !== m){ SRS[id] = Object.assign({}, win, {m}); ch = true; }
+  });
+  const sn = d.sent || {}; Object.keys(sn).forEach(id => { if (!SENT[id]){ SENT[id] = sn[id]; ch = true; } });
+  const before = DAYS.length; DAYS = [...new Set([...DAYS, ...(Array.isArray(d.days) ? d.days : [])])].sort((x, y) => x - y).slice(-400); if (DAYS.length !== before) ch = true;
+  store.set('srs', SRS); store.set('sent', SENT); store.set('days', DAYS);
+  return ch;
+}
+const payload = () => JSON.stringify({v: 1, updated: new Date().toISOString(), srs: SRS, sent: SENT, days: DAYS});
+function transferCard(){
+  return `<details class="card" id="xfer" style="margin-top:24px"><summary style="font-weight:800;cursor:pointer">🔄 Voortgang overzetten</summary>
+    <p class="muted" style="font-size:.88rem">Gebruik je de app op twee plekken zonder synchroniseren? Kopieer hier je voortgang en plak hem op de andere plek bij Leerroute → Voortgang overzetten.</p>
+    <div class="row"><button class="primary" id="xcopy">📋 Kopieer mijn voortgang</button></div>
+    <textarea id="xcode" rows="3" style="width:100%;margin-top:10px;font-size:.8rem;border-radius:10px;border:1px solid var(--line);padding:8px;background:var(--surface2);color:var(--fg)" placeholder="Plak hier de code van de andere plek"></textarea>
+    <div class="row" style="margin-top:8px"><button id="ximport">⬇️ Zet voortgang over</button><span id="xmsg" class="muted" style="font-size:.88rem"></span></div></details>`;
+}
+function bindTransfer(){
+  const msg = document.getElementById('xmsg'), ta = document.getElementById('xcode');
+  document.getElementById('xcopy').addEventListener('click', async () => {
+    const c = 'ENG1:' + btoa(unescape(encodeURIComponent(payload()))); ta.value = c;
+    try{ await navigator.clipboard.writeText(c); msg.textContent = '✓ Gekopieerd! Plak hem in de app op de andere plek.'; }catch(e){ ta.select(); msg.textContent = 'Kopiëren lukte niet vanzelf: houd je vinger op de code in het vak → Kopieer.'; }
+  });
+  document.getElementById('ximport').addEventListener('click', () => {
+    try{ const c = ta.value.trim(); if (!c.startsWith('ENG1:')) throw 0; const d = JSON.parse(decodeURIComponent(escape(atob(c.slice(5))))); mergeData(d); msg.textContent = `✓ Gelukt! ${Object.keys(d.srs || {}).length} woorden overgezet.`; setTimeout(() => { const sy = window.scrollY; render(); window.scrollTo(0, sy); }, 900); }
+    catch(e){ msg.textContent = 'Deze code klopt niet. Kopieer hem opnieuw op de andere plek.'; }
+  });
+}
+
+/* ---------- synchroniseren via privé GitHub Gist ---------- */
+const SYNCFILE = 'engels-voortgang.json';
+const SYNCHERE = location.protocol === 'https:' && /github\.io$/.test(location.hostname) || /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+let SYNC = store.get('sync', null), SYNCBUSY = false, SYNCTIMER = null, SYNCSTATE = SYNC && SYNC.last ? 'ok' : '';
+function otherAppToken(){ try{ const m = JSON.parse(localStorage.getItem('mdr-sync') || 'null'); return m && m.token || null; }catch(e){ return null; } }
+async function gh(path, opt = {}){
+  const headers = {'Authorization': 'Bearer ' + SYNC.token, 'Accept': 'application/vnd.github+json'}; if (opt.body) headers['Content-Type'] = 'application/json';
+  const r = await fetch('https://api.github.com' + path, Object.assign({}, opt, {headers, cache: 'no-store'}));
+  if (!r.ok){ const e = new Error('http ' + r.status); e.status = r.status; throw e; }
+  return r.status === 204 ? null : r.json();
+}
+async function findGist(){
+  for (let page = 1; page <= 5; page++){ const list = await gh('/gists?per_page=100&page=' + page); const g = list.find(x => x.files && x.files[SYNCFILE]); if (g) return g.id; if (list.length < 100) break; }
+  return (await gh('/gists', {method: 'POST', body: JSON.stringify({description: 'Engels Oefenapp – voortgang (niet verwijderen)', public: false, files: {[SYNCFILE]: {content: payload()}}})})).id;
+}
+function syncStatusText(){
+  const t = SYNC && SYNC.last ? new Date(SYNC.last).toLocaleTimeString(LANG === 'pl' ? 'pl-PL' : 'nl-NL', {hour: '2-digit', minute: '2-digit'}) : '';
+  return ({busy: '🔄 Bezig met synchroniseren…', ok: `✅ Gesynchroniseerd (${t})`, offline: '📴 Geen internet. Je voortgang wordt bijgewerkt zodra je weer online bent.', badtoken: '⚠️ De sleutel werkt niet (meer). Ontkoppel en maak een nieuwe sleutel aan.', err: '⚠️ Synchroniseren lukte even niet. De app probeert het straks opnieuw.'})[SYNCSTATE] || '';
+}
+function setSync(st){ SYNCSTATE = st; const el = document.getElementById('syncStatus'); if (el) el.textContent = syncStatusText(); }
+async function syncNow(){
+  if (!SYNCHERE || !SYNC || !SYNC.token || SYNCBUSY) return false;
+  if (navigator.onLine === false){ setSync('offline'); return false; }
+  SYNCBUSY = true; setSync('busy'); let ch = false;
+  try{
+    if (!SYNC.gist){ SYNC.gist = await findGist(); store.set('sync', SYNC); }
+    const g = await gh('/gists/' + SYNC.gist), f = g.files && g.files[SYNCFILE];
+    if (f){ let txt = f.content; if (f.truncated && f.raw_url) txt = await (await fetch(f.raw_url, {cache: 'no-store'})).text(); try{ ch = mergeData(JSON.parse(txt)); }catch(e){} }
+    await gh('/gists/' + SYNC.gist, {method: 'PATCH', body: JSON.stringify({files: {[SYNCFILE]: {content: payload()}}})});
+    SYNC.last = Date.now(); store.set('sync', SYNC); SYNCBUSY = false; setSync('ok');
+    if (ch && (TAB === 'route' || TAB === 'leren')){ const sy = window.scrollY; render(); window.scrollTo(0, sy); }
+    return true;
+  }catch(e){
+    SYNCBUSY = false; if (e.status === 404 && SYNC.gist){ SYNC.gist = null; store.set('sync', SYNC); }
+    setSync(e.status === 401 ? 'badtoken' : navigator.onLine === false ? 'offline' : 'err'); return false;
+  }
+}
+function scheduleSync(){ if (!SYNCHERE || !SYNC) return; clearTimeout(SYNCTIMER); SYNCTIMER = setTimeout(syncNow, 4000); }
+if (SYNCHERE){ document.addEventListener('visibilitychange', () => { if (SYNC) syncNow(); }); window.addEventListener('online', () => { if (SYNC) syncNow(); }); }
+function syncCard(){
+  if (!SYNCHERE) return '';
+  if (SYNC && SYNC.token) return `<div class="card" style="margin-top:12px"><b>☁️ Synchroniseren tussen apparaten</b><p class="muted" style="font-size:.88rem;margin:6px 0">Aan. Je voortgang wordt automatisch bewaard en gedeeld met je andere apparaten, telkens als je oefent of de app opent.</p>
+    <div id="syncStatus" style="font-weight:700;font-size:.92rem">${syncStatusText()}</div><div class="row" style="margin-top:10px"><button id="syncGo">🔄 Nu synchroniseren</button><button id="syncOff" class="small">Ontkoppel dit apparaat</button></div></div>`;
+  const other = otherAppToken();
+  return `<div class="card" style="margin-top:12px"><b>☁️ Synchroniseren tussen apparaten</b><p class="muted" style="font-size:.88rem;margin:6px 0">Dezelfde voortgang op al je apparaten. Je doet dit één keer per apparaat.</p>
+    ${other ? `<div class="row" style="margin-bottom:8px"><button class="primary" id="syncReuse">🔑 Gebruik dezelfde sleutel als de Chinese app</button></div>` : ''}
+    <ol style="font-size:.9rem;padding-left:20px;margin:6px 0"><li><a href="https://github.com/settings/tokens/new?scopes=gist&description=Engels%20app" target="_blank" rel="noopener">Maak een sleutel aan op GitHub</a>. Kies bij Expiration: No expiration, laat het vinkje bij gist aan staan en tik onderaan op Generate token.</li><li>Kopieer de sleutel (begint met ghp_) en plak hem hieronder.</li></ol>
+    <input id="syncTok" type="password" autocomplete="off" placeholder="ghp_…" style="width:100%;font-size:1rem;border-radius:10px;border:1px solid var(--line);padding:10px;background:var(--surface2);color:var(--fg)">
+    <div class="row" style="margin-top:8px"><button class="${other ? '' : 'primary'}" id="syncOn">Koppel</button><span id="syncStatus" class="muted" style="font-size:.88rem"></span></div></div>`;
+}
+function bindSync(){
+  const connect = async tok => {
+    const st = document.getElementById('syncStatus');
+    if (!/^(ghp_|github_pat_)[A-Za-z0-9_]{20,}$/.test(tok)){ st.textContent = 'Dit lijkt geen sleutel. Hij begint met ghp_ en is lang.'; return; }
+    SYNC = {token: tok}; st.textContent = '🔄 Bezig met koppelen…';
+    if (!(await syncNow())){ const m = SYNCSTATE === 'badtoken' ? 'Deze sleutel werkt niet. Controleer of het vinkje bij "gist" aan stond.' : 'Koppelen lukte niet. Heb je internet?'; SYNC = null; st.textContent = m; return; }
+    store.set('sync', SYNC); const sy = window.scrollY; render(); window.scrollTo(0, sy);
+  };
+  const on = document.getElementById('syncOn'); if (on) on.addEventListener('click', () => connect(document.getElementById('syncTok').value.trim()));
+  const re = document.getElementById('syncReuse'); if (re) re.addEventListener('click', () => connect(otherAppToken()));
+  const go = document.getElementById('syncGo'); if (go) go.addEventListener('click', () => syncNow());
+  const off = document.getElementById('syncOff'); if (off) off.addEventListener('click', () => { SYNC = null; SYNCSTATE = ''; try{ localStorage.removeItem(P + 'sync'); }catch(e){} const sy = window.scrollY; render(); window.scrollTo(0, sy); });
+}
+
+/* ---------- start ---------- */
+(function(){
+  const el = document.getElementById('langsw');
+  el.innerHTML = `<span class="muted" style="font-size:.75rem;font-weight:800;padding:0 4px;align-self:center">${LANG === 'pl' ? 'Uczę się z:' : 'Ik leer vanuit:'}</span>` + [['nl','🇳🇱 NL'],['pl','🇵🇱 PL']].map(([k, v]) => `<button data-lang="${k}" aria-pressed="${LANG === k}">${v}</button>`).join('');
+  el.querySelectorAll('[data-lang]').forEach(b => b.addEventListener('click', () => { if (b.dataset.lang === LANG) return; SETTINGS.lang = b.dataset.lang; store.set('set', SETTINGS); location.reload(); }));
+})();
+startI18n();
+const startTab = location.hash.slice(1);
+setTab(TABS.includes(startTab) ? startTab : 'leren');
+if (SYNCHERE && SYNC) setTimeout(syncNow, 800);
+window.APPREADY = true;
+</script>
+
+<script>
+if ('serviceWorker' in navigator && location.protocol === 'https:') window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+</script>
+</body>
+</html>
